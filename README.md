@@ -9,6 +9,7 @@ WIP Notice
 This role is a Work-In-Progress. It is limited in the following ways:
 
 * Under active development
+* contains workarounds specific to Sufia version 7.2
 * Creates a new Sufia-based site. Does not yet install an existing site from source-control.
 * Only tested within very few OSes/versions
 

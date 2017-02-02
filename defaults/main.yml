@@ -1,2 +1,15 @@
 ---
-# defaults file for sufia
+sufia_version:      "7.2.0"
+rails_version:      "5.0.1"
+rails_env:          "development"
+sufia_app_name:     "sufia"
+sufia_base_deploy_dir:  "/opt"
+sufia_deploy_dir:       "{{ sufia_base_deploy_dir }}/{{ sufia_app_name }}"
+sufia_base_build_dir:   "{{ ansible_env.HOME}}"
+sufia_build_dir:        "{{ sufia_base_build_dir }}/{{ sufia_app_name }}"
+bundler_path:       "/usr/local/bin"
+sufia_work_type:    "Work"
+gems_path:          "/usr/local/lib/ruby/gems/2.3.0/gems/"
+sufia_redeploy:     true
+# sufia_template:         "https://raw.githubusercontent.com/projecthydra/sufia/master/template.rb"
+sufia_inotify_watchers: "524288"
