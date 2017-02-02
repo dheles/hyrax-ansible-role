@@ -3,13 +3,6 @@
 #   RAILS_ENV:  "{{ rails_env }}"
 #   PATH:       "{{ bundler_path }}:{{ ansible_env.PATH }}"
 
-  # TODO: move to ruby role
-- name: put rubygems on path
-  template:
-    src: "rubygems.sh.j2"
-    dest: "/etc/profile.d/rubygems.sh"
-  become: true
-
   # TODO: review: not at all sure these are having any effect, at least on CentOS
 - name: set environment variables
   become: true
