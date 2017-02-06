@@ -117,14 +117,32 @@
     path: "{{ sufia_build_dir }}"
   register: sufia_build_stat
 
-- name: clear out sufia deploy dir for redeployment
-  file:
-    path: "{{ sufia_deploy_dir }}"
-    state: absent
-  become: true
-  when: sufia_build_stat.stat.exists and sufia_redeploy
+- block:
+  - name: clear out sufia deploy dir for redeployment
+    # NOTE: ansible-y but ineffective
+    # file:
+    #   path: "{{ sufia_deploy_dir }}/*"
+    #   state: absent
+    shell: "rm -rf {{ sufia_deploy_dir }}/*"
 
-- name: deploy sufia
-  command: "mv {{ sufia_build_dir }} {{ sufia_deploy_dir }}"
+  - name: deploy sufia
+    shell: "cp -a {{ sufia_build_dir }}/* {{ sufia_deploy_dir }}"
+    args:
+      executable: /bin/bash
+
+  - name: add login user
+    user:
+      name: "{{ sufia_app_user }}"
+      shell: "/bin/bash"
+
+  - name: reassign ownership of deployed application
+    file:
+      path:     "{{ sufia_deploy_dir }}"
+      owner:    "{{ sufia_app_user }}"
+      group:    "{{ sufia_app_user }}"
+      state:    directory
+      recurse:  true
+
+  when: sufia_build_stat.stat.exists and sufia_redeploy
   become: true
-  when: sufia_build_stat.stat.exists
+  # end block
