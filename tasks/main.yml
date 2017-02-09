@@ -135,14 +135,27 @@
       name: "{{ sufia_app_user }}"
       shell: "/bin/bash"
 
-  - name: reassign ownership of deployed application
-    file:
-      path:     "{{ sufia_deploy_dir }}"
-      owner:    "{{ sufia_app_user }}"
-      group:    "{{ sufia_app_user }}"
-      state:    directory
-      recurse:  true
+  # - name: reassign ownership of deployed application
+  #   file:
+  #     path:     "{{ sufia_deploy_dir }}"
+  #     owner:    "{{ sufia_app_user }}"
+  #     group:    "{{ sufia_app_user }}"
+  #     state:    directory
+  #     recurse:  true
 
   when: sufia_build_stat.stat.exists and sufia_redeploy
   become: true
   # end block
+
+- name: install *the rest of* the project's gems
+  bundler:
+    chdir: "{{ sufia_deploy_dir }}"
+    gem_path: "vendor/bundle"
+
+- name: start servers
+  shell: screen -dm bash -c "bundle exec rake hydra:server >& log/sufia.log"
+  args:
+    chdir: "{{ sufia_deploy_dir }}"
+  async: 30
+  poll: 0
+  when: sufia_mode == 'dev'
