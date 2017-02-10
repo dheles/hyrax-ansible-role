@@ -175,3 +175,7 @@
   async: 30
   poll: 0
   when: sufia_mode == 'dev'
+
+- name: configure solr server
+  include: configure_solr.yml
+  when: sufia_mode == 'prod_like'

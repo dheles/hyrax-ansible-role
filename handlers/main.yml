@@ -1,2 +1,7 @@
 ---
-# handlers file for sufia
+  # TODO: see about accessing from solr role (perhaps if both roles were called from same playbook?)
+- name: restart solr
+  service:
+    name: solr
+    state: restarted
+  become: true

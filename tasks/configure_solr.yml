@@ -1,0 +1,22 @@
+---
+# NOTE: the solr core is created by the containing playbook,
+# at the time of installation (i.e. before this point),
+# using functionality built into the solr role
+
+- name: test variables
+  debug:
+    msg: "solr_core: {{ solr_core }}"
+
+- name: symlink solr schema and config
+  file:
+    src: "{{ sufia_deploy_dir }}/solr/config/{{ item }}"
+    dest: "/var/solr/data/{{ solr_core }}/conf/{{ item }}"
+    state: link
+    owner: "{{ solr_user }}"
+    group: "{{ solr_user }}"
+    force: yes
+  with_items:
+    - "schema.xml"
+    - "solrconfig.xml"
+  become: true
+  notify: restart solr
