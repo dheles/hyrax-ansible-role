@@ -11,7 +11,8 @@ sufia_build_dir:        "{{ sufia_base_build_dir }}/{{ sufia_app_name }}"
 bundler_path:           "/usr/local/bin"
 sufia_work_type:        "Work"
 gems_path:              "/usr/local/lib/ruby/gems/2.3.0/gems/"
+sufia_rebuild:          true
 sufia_redeploy:         true
 # sufia_template:         "https://raw.githubusercontent.com/projecthydra/sufia/master/template.rb"
 sufia_inotify_watchers: "524288"
-sufia_mode:             "dev" 
+sufia_mode:             "dev"

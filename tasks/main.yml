@@ -28,46 +28,14 @@
     state: present
     # user_install: no
 
-- name: clear out sufia build dir for redeployment
-  file:
-    path: "{{ sufia_build_dir }}"
-    state: absent
-  when: sufia_redeploy
-
-    # TODO: this will become rrecommended practice with sufia version 7.3
-# - name: create rails app from template
-#   command: bash -lc "rails new {{ sufia_app_name }} -m {{ sufia_template }}"
-#   args:
-#     chdir: "{{ sufia_base_build_dir }}"
-
-- name: create rails app
-  command: bash -lc "rails new {{ sufia_app_name }}"
-  args:
-    chdir: "{{ sufia_base_build_dir }}"
-
-# - name: add sufia to the new app's gemfile
-#   lineinfile:
-#     dest:   "{{ sufia_build_dir }}/Gemfile"
-#     regexp: "^gem 'sufia', '{{ sufia_version }}'"
-#     line:   "gem 'sufia', '{{ sufia_version }}'"
-
-  # NOTE: presumably not needed with sufia versions >= 7.3
-- name: add sufia and dependencies to new app's Gemfile
-  blockinfile:
-    dest: "{{ sufia_build_dir }}/Gemfile"
-    block: |
-      # Sufia Gems
-      gem 'sufia', '{{ sufia_version }}'
-      gem 'curation_concerns', '~> 1.6.0'
-      gem 'flipflop', git: 'https://github.com/jcoyne/flipflop.git', branch: 'hydra'
-
-  # TODO: this is the better approach, get it to work
+# TODO: refactor or block, so that all inotify tasks can be run only when / where necessary
+# TODO: this is the better approach, get it to work
 # - name: inotify watcher fix
 #   template:
 #     src: sysctl.conf.j2
 #     dest: /etc/sysctl.d/40-max_user_watches.conf
 #   become: true
-  # TODO: fragile. override in sysctl.d instead
+# TODO: fragile. override in sysctl.d instead
 - name: inotify watcher fix
   lineinfile:
     dest:   /etc/sysctl.conf
@@ -85,38 +53,83 @@
   register: inotify_watchers_result
   changed_when: false
 
-  # NOTE: consider not forcing fail here, as the error we are attempting to avoid may not stick around.
-  # if it doesn't, we don't really care about inootify watchers
+# NOTE: consider not forcing fail here, as the error we are attempting to avoid may not stick around.
+# if it doesn't, we don't really care about inootify watchers
 - name: test inotify watcher fix
   assert:
     that: "{{inotify_watchers_result.stdout}} == {{ sufia_inotify_watchers }}"
     msg: "inotify max_user_watches value: {{inotify_watchers_result.stdout}}; expected value: {{ sufia_inotify_watchers }}"
 
-- name: install the project's gems for development
-  bundler:
-    chdir: "{{ sufia_build_dir }}"
-    gem_path: "vendor/bundle"
+  # TODO: consider assertion or flow control to prevent unproductive rebuild/redeploy settings on fresh system
+- name: stat sufia deploy dir
+  stat:
+    path: "{{ sufia_deploy_dir }}"
+  register: sufia_deploy_stat
 
-- name: install sufia
-  command: bash -lc "rails generate sufia:install -f"
-  args:
-    chdir: "{{ sufia_build_dir }}"
+  # build block
+- block:
+  - name: clear out sufia build dir for redeployment
+    file:
+      path: "{{ sufia_build_dir }}"
+      state: absent
 
-- name: generate primary work type
-  command: bash -lc "rails generate sufia:work {{ sufia_work_type }}"
-  args:
-    chdir: "{{ sufia_build_dir }}"
+  # TODO: this will become recommended practice with sufia version 7.3
+  # - name: create rails app from template
+  #   command: bash -lc "rails new {{ sufia_app_name }} -m {{ sufia_template }}"
+  #   args:
+  #     chdir: "{{ sufia_base_build_dir }}"
 
-- name: database migrations
-  command: bash -lc "rake db:migrate"
-  args:
-    chdir: "{{ sufia_build_dir }}"
+  - name: create rails app
+    command: bash -lc "rails new {{ sufia_app_name }}"
+    args:
+      chdir: "{{ sufia_base_build_dir }}"
+
+  # TODO: conditionally add dependencies based on sufia version
+  # - name: add sufia to the new app's gemfile
+  #   lineinfile:
+  #     dest:   "{{ sufia_build_dir }}/Gemfile"
+  #     regexp: "^gem 'sufia', '{{ sufia_version }}'"
+  #     line:   "gem 'sufia', '{{ sufia_version }}'"
+
+    # NOTE: presumably not needed with sufia versions >= 7.3
+  - name: add sufia and dependencies to new app's Gemfile
+    blockinfile:
+      dest: "{{ sufia_build_dir }}/Gemfile"
+      block: |
+        # Sufia Gems
+        gem 'sufia', '{{ sufia_version }}'
+        gem 'curation_concerns', '~> 1.6.0'
+        gem 'flipflop', git: 'https://github.com/jcoyne/flipflop.git', branch: 'hydra'
+
+  - name: install the project's gems for development
+    bundler:
+      chdir: "{{ sufia_build_dir }}"
+      gem_path: "vendor/bundle"
+
+  - name: install sufia
+    command: bash -lc "rails generate sufia:install -f"
+    args:
+      chdir: "{{ sufia_build_dir }}"
+
+  - name: generate primary work type
+    command: bash -lc "rails generate sufia:work {{ sufia_work_type }}"
+    args:
+      chdir: "{{ sufia_build_dir }}"
+
+  - name: database migrations
+    command: bash -lc "rake db:migrate"
+    args:
+      chdir: "{{ sufia_build_dir }}"
+
+  when: sufia_rebuild
+  # end build block
 
 - name: stat sufia build dir
   stat:
     path: "{{ sufia_build_dir }}"
   register: sufia_build_stat
 
+  # deploy block
 - block:
   - name: clear out sufia deploy dir for redeployment
     # NOTE: ansible-y but ineffective
@@ -124,6 +137,7 @@
     #   path: "{{ sufia_deploy_dir }}/*"
     #   state: absent
     shell: "rm -rf {{ sufia_deploy_dir }}/*"
+    become: true
 
   - name: deploy sufia
     shell: "cp -a {{ sufia_build_dir }}/* {{ sufia_deploy_dir }}"
@@ -135,18 +149,20 @@
       name: "{{ sufia_app_user }}"
       shell: "/bin/bash"
 
-  # - name: reassign ownership of deployed application
-  #   file:
-  #     path:     "{{ sufia_deploy_dir }}"
-  #     owner:    "{{ sufia_app_user }}"
-  #     group:    "{{ sufia_app_user }}"
-  #     state:    directory
-  #     recurse:  true
+    # TODO: use or lose
+    # - name: reassign ownership of deployed application
+    #   file:
+    #     path:     "{{ sufia_deploy_dir }}"
+    #     owner:    "{{ sufia_app_user }}"
+    #     group:    "{{ sufia_app_user }}"
+    #     state:    directory
+    #     recurse:  true
 
   when: sufia_build_stat.stat.exists and sufia_redeploy
   become: true
-  # end block
+  # end deploy block
 
+  # TODO: test necessity under alternate (containing directory) deployment approach
 - name: install *the rest of* the project's gems
   bundler:
     chdir: "{{ sufia_deploy_dir }}"
