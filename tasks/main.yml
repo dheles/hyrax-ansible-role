@@ -85,23 +85,17 @@
       chdir: "{{ sufia_base_build_dir }}"
 
   # TODO: conditionally add dependencies based on sufia version
-  # - name: add sufia to the new app's gemfile
-  #   lineinfile:
-  #     dest:   "{{ sufia_build_dir }}/Gemfile"
-  #     regexp: "^gem 'sufia', '{{ sufia_version }}'"
-  #     line:   "gem 'sufia', '{{ sufia_version }}'"
-
-    # NOTE: presumably not needed with sufia versions >= 7.3
+  # NOTE: presumably not needed with sufia versions >= 7.3
   - name: add sufia and dependencies to new app's Gemfile
     blockinfile:
       dest: "{{ sufia_build_dir }}/Gemfile"
       block: |
-        # Sufia Gems
         gem 'sufia', '{{ sufia_version }}'
         gem 'curation_concerns', '~> 1.6.0'
         gem 'flipflop', git: 'https://github.com/jcoyne/flipflop.git', branch: 'hydra'
+      marker: "# {mark} Sufia Gems"
 
-  - name: install the project's gems for development
+  - name: install the project's gems
     bundler:
       chdir: "{{ sufia_build_dir }}"
       gem_path: "vendor/bundle"
@@ -131,42 +125,57 @@
 
   # deploy block
 - block:
-  - name: clear out sufia deploy dir for redeployment
-    # NOTE: ansible-y but ineffective
-    # file:
-    #   path: "{{ sufia_deploy_dir }}/*"
-    #   state: absent
-    shell: "rm -rf {{ sufia_deploy_dir }}/*"
-    become: true
-
-  - name: deploy sufia
-    shell: "cp -a {{ sufia_build_dir }}/* {{ sufia_deploy_dir }}"
-    args:
-      executable: /bin/bash
-
-  - name: add login user
+    # TODO: specify uid and add app group with specific gid, for project_code use
+  - name: add app user
     user:
       name: "{{ sufia_app_user }}"
       shell: "/bin/bash"
 
-    # TODO: use or lose
-    # - name: reassign ownership of deployed application
-    #   file:
-    #     path:     "{{ sufia_deploy_dir }}"
-    #     owner:    "{{ sufia_app_user }}"
-    #     group:    "{{ sufia_app_user }}"
-    #     state:    directory
-    #     recurse:  true
+  - name: remove existing deploy directory, if redeploying
+    file:
+      path: "{{ sufia_deploy_dir }}"
+      state: absent
+    when: sufia_redeploy
 
-  when: sufia_build_stat.stat.exists and sufia_redeploy
+  - name: add args to handle redeployment
+    set_fact:
+      created_deploy_dir: "/nonexistent/path/to/subvert/creates/argument"
+  - set_fact:
+      created_deploy_dir: "{{ sufia_deploy_dir }}"
+    when: not sufia_redeploy
+
+  - name: deploy sufia
+    command: mv {{ sufia_build_dir }} {{ sufia_deploy_dir }}
+    args:
+      creates: "{{ created_deploy_dir }}"
+    when: sufia_redeploy or not sufia_deploy_stat.stat.exists
+
+  - name: configure bundle install based on sufia_mode
+    set_fact:
+      sufia_deployment_mode: false
+  - set_fact:
+      sufia_deployment_mode: true
+    when: sufia_mode == "prod_like"
+
+  - name: install the project's gems for development
+    bundler:
+      chdir: "{{ sufia_deploy_dir }}"
+      gem_path: "vendor/bundle"
+      deployment_mode: "{{ sufia_deployment_mode }}"
+
+  - name: reassign ownership of deployed application
+    file:
+      path:     "{{ sufia_deploy_dir }}"
+      owner:    "{{ sufia_app_user }}"
+      group:    "{{ sufia_app_user }}"
+      state:    directory
+      recurse:  true
+
+  # NOTE: can't deploy w/o something built
+  # TODO: consider reflow to avoid illogical conditions
+  when: sufia_build_stat.stat.exists
   become: true
   # end deploy block
-
-  # TODO: test necessity under alternate (containing directory) deployment approach
-- name: install *the rest of* the project's gems
-  bundler:
-    chdir: "{{ sufia_deploy_dir }}"
-    gem_path: "vendor/bundle"
 
 - name: start servers
   shell: screen -dm bash -c "bundle exec rake hydra:server >& log/sufia.log"
@@ -174,8 +183,8 @@
     chdir: "{{ sufia_deploy_dir }}"
   async: 30
   poll: 0
-  when: sufia_mode == 'dev'
+  when: sufia_mode == "dev"
 
 - name: configure solr server
   include: configure_solr.yml
-  when: sufia_mode == 'prod_like'
+  when: sufia_mode == "prod_like"
