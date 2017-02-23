@@ -198,6 +198,27 @@
   become: true
   # end deploy block
 
+  # FIXME: this is not a good solution. issue may be that the deploy dir is mounted.
+  # may need to provide secontext as mount option.
+  # see: https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Security-Enhanced_Linux/sect-Security-Enhanced_Linux-Working_with_SELinux-Mounting_File_Systems.html
+- name: disable SELinux
+  become: true
+  selinux:
+    state: disabled
+# - name: set SELinux context on deploy dir
+#   sefcontext:
+#     target: "{{ sufia_deploy_dir }}(/.*)?"
+#     setype: "httpd_sys_content_t"
+#     reload: True
+#     state:  present
+#   become: true
+#   register: sufia_se_context
+#
+# - name: fix the SELinux Context for deploy dir
+#   shell: "restorecon -R -v {{ sufia_deploy_dir }}"
+#   become: true
+#   when: sufia_se_context.changed
+
 - name: generate rails secret_key_base
   # command: bash -lc "bundle exec rake secret"
   command: "openssl rand -hex 64"

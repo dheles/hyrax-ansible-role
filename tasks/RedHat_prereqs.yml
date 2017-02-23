@@ -9,6 +9,8 @@
     - nodejs
     - git
     - postgresql-devel
+    - policycoreutils-python
+    - libselinux-python
     # - ruby-devel
     # - gcc
     # - zlib-devel
