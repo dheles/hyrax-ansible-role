@@ -1,0 +1,19 @@
+---
+- name: destroy database
+  become: true
+  become_user:  "{{ db_admin_user }}"
+  postgresql_db:
+    name:       "{{ sufia_db.name }}"
+    state: absent
+  when: sufia_breaking_stuff_is_ok and sufia_db_provider == 'postgresql'
+
+- name: recreate database
+  become: true
+  become_user:  "{{ db_admin_user }}"
+  postgresql_db:
+    name:       "{{ sufia_db.name }}"
+    encoding:   "{{ sufia_db.encoding | default(omit) }}"
+    owner:      "{{ sufia_db.owner    | default(omit) }}"
+    state: present
+  with_items:   "{{ sufia_db }}"
+  when: sufia_breaking_stuff_is_ok and sufia_db_provider == 'postgresql'

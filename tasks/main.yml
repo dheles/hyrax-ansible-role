@@ -122,6 +122,15 @@
     include: configure_database.yml
     when: sufia_mode == "prod_like"
 
+    # NOTE: this DESTRUCTIVE task is the sort of thing you'd need to use when
+    # when developing, but sure isn't what you'd want to forget about and run
+    # on a production system. it is necessitated by the fact that sufia's
+    # database migrations are not idempotent. should they be?
+    # IDK, but until they are, there's this
+  - name: reset database !DESTRUCTIVELY!
+    include: reset_database.yml
+    when: sufia_breaking_stuff_is_ok and sufia_mode == "prod_like"
+
   - name: database migrations
     command: bash -lc "rake db:migrate"
     args:
