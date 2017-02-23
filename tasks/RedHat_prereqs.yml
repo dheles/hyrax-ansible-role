@@ -8,6 +8,7 @@
     - sqlite-devel
     - nodejs
     - git
+    - postgresql-devel
     # - ruby-devel
     # - gcc
     # - zlib-devel

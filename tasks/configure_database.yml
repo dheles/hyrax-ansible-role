@@ -1,0 +1,5 @@
+---
+- name: template database.yml
+  template:
+    src: "database.yml.j2"
+    dest: "{{ sufia_build_dir }}/config/database.yml"
