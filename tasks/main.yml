@@ -85,9 +85,18 @@
   #   args:
   #     chdir: "{{ sufia_base_build_dir }}"
 
-    # FIXME: parameterixe postgres argument
+  # NOTE: don't install spring in production environments:
+  # https://github.com/projecthydra/hydra-head/issues/201
+  - name: adjust for the rails environment
+    set_fact:
+      skip: ""
+    set_fact:
+      exclude: "development, test"
+      skip: "--skip-spring"
+    when: rails_env == 'production'
+
   - name: create rails app
-    command: bash -lc "rails new {{ sufia_app_name }} --database=postgresql"
+    command: bash -lc "rails new {{ sufia_app_name }} --database={{ sufia_db_provider }} {{ skip }}"
     args:
       chdir: "{{ sufia_base_build_dir }}"
 
@@ -106,6 +115,7 @@
     bundler:
       chdir: "{{ sufia_build_dir }}"
       gem_path: "vendor/bundle"
+      exclude_groups: "{{ exclude | default(omit) }}"
 
   - name: install sufia
     command: bash -lc "rails generate sufia:install -f"
@@ -135,6 +145,8 @@
     command: bash -lc "rake db:migrate"
     args:
       chdir: "{{ sufia_build_dir }}"
+    environment:
+      RAILS_ENV: '{{ rails_env }}'
 
   when: sufia_rebuild
   # end build block
