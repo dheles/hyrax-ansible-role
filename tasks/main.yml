@@ -17,6 +17,9 @@
     - regexp: "^PATH=*"
       line:    "PATH={{ bundler_path }}:{{ gems_path }}:{{ ansible_env.PATH }}"
 
+- name: include os-specific vars
+  include_vars: "{{ansible_os_family}}.yml"
+  
 - name: install os-specific prereqs
   include: "{{ansible_os_family}}_prereqs.yml"
   become: true

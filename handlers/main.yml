@@ -5,3 +5,10 @@
     name: solr
     state: restarted
   become: true
+
+- name: restart apache
+  service:
+    name: "{{ apache_service }}"
+    enabled: true
+    state: restarted
+  become: true

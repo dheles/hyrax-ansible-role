@@ -1,4 +1,9 @@
 ---
+- name: restart apache to release database from any running processes
+  command: echo "restarting apache to free the database"
+  notify: restart apache
+- meta: flush_handlers
+
 - name: destroy database
   become: true
   become_user:  "{{ db_admin_user }}"
