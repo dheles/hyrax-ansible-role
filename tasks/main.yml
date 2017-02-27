@@ -214,6 +214,7 @@
       group:    "{{ sufia_app_user }}"
       state:    directory
       recurse:  true
+    notify: restart apache
 
   # NOTE: can't deploy w/o something built
   # TODO: consider reflow to avoid illogical conditions
@@ -252,6 +253,7 @@
     line: "export SECRET_KEY_BASE={{ secret_key_base.stdout }}"
     state: "present"
   become: true
+  notify: restart apache
 
 - name: start servers
   shell: screen -dm bash -c "bundle exec rake hydra:server >& log/sufia.log"
