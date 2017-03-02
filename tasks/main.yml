@@ -258,3 +258,7 @@
 - name: configure solr server
   include: configure_solr.yml
   when: sufia_mode == "prod_like"
+
+- name: configure fedora
+  include: configure_fedora.yml
+  when: sufia_mode == "prod_like"

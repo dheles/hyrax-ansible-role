@@ -28,3 +28,8 @@ sufia_db:               "{{ db_databases[0]       | default('') }}"
 sufia_db_name:          "{{ sufia_db.name         | default('db/' + rails_env + '.sqlite3') }}"
 sufia_db_user:          "{{ db_users[0].user      | default('sufia') }}"
 sufia_db_pass:          "{{ db_users[0].pass      | default('sufia_isnt_a_good_pasword') }}"
+# fedora vars
+fcrepo_admin_user:      ""
+fcrepo_admin_pass:      ""
+fcrepo_url:             "127.0.0.1"
+fcrepo_port:            "8080"

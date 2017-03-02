@@ -1,0 +1,9 @@
+---
+- name: template fedora.yml
+  template:
+    src: "fedora.yml.j2"
+    dest: "{{ sufia_deploy_dir }}/config/fedora.yml"
+    owner: "{{ sufia_app_user }}"
+    group: "{{ sufia_app_user }}"
+  become: true
+  notify: restart apache

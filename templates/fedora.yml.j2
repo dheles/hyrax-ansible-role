@@ -1,0 +1,15 @@
+development:
+  user: {{ fcrepo_admin_user }}
+  password: {{ fcrepo_admin_pass }}
+  url: http://{{ fcrepo_url }}:{{ fcrepo_port }}/fedora/rest
+  base_path: /dev
+test:
+  user: {{ fcrepo_admin_user }}
+  password: {{ fcrepo_admin_pass }}
+  url: http://{{ fcrepo_url }}:{{ fcrepo_port }}/fedora/rest
+  base_path: /test
+production:
+  user: {{ fcrepo_admin_user }}
+  password: {{ fcrepo_admin_pass }}
+  url: http://{{ fcrepo_url }}:{{ fcrepo_port }}/fedora/rest
+  base_path: /prod
