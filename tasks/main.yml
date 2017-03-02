@@ -93,7 +93,7 @@
   - name: adjust for the rails environment
     set_fact:
       skip: ""
-    set_fact:
+  - set_fact:
       exclude: "development, test"
       skip: "--skip-spring"
     when: rails_env == 'production'
