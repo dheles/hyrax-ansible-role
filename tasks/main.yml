@@ -82,12 +82,6 @@
       path: "{{ sufia_build_dir }}"
       state: absent
 
-  # TODO: this will become recommended practice with sufia version 7.3
-  # - name: create rails app from template
-  #   command: bash -lc "rails new {{ sufia_app_name }} -m {{ sufia_template }}"
-  #   args:
-  #     chdir: "{{ sufia_base_build_dir }}"
-
   # NOTE: don't install spring in production environments:
   # https://github.com/projecthydra/hydra-head/issues/201
   - name: adjust for the rails environment
@@ -98,32 +92,46 @@
       skip: "--skip-spring"
     when: rails_env == 'production'
 
-  - name: create rails app
-    command: bash -lc "rails new {{ sufia_app_name }} --database={{ sufia_db_provider }} {{ skip }}"
+  # FIXME: regex to respond to >= 7.3 (not just rc1)
+  # TODO: this will become recommended practice with sufia version 7.3
+  - name: create rails app from template
+    command: bash -lc "rails new {{ sufia_app_name }} -m {{ sufia_template }} --database={{ sufia_db_provider }} {{ skip }}"
     args:
       chdir: "{{ sufia_base_build_dir }}"
+    when: sufia_version == '7.3.0.rc1'
 
-  # TODO: conditionally add dependencies based on sufia version
-  # NOTE: presumably not needed with sufia versions >= 7.3
-  - name: add sufia and dependencies to new app's Gemfile
-    blockinfile:
-      dest: "{{ sufia_build_dir }}/Gemfile"
-      block: |
-        gem 'sufia', '{{ sufia_version }}'
+    # block for sufia version <= 7.2
+  - block:
+    - name: create rails app
+      command: bash -lc "rails new {{ sufia_app_name }} --database={{ sufia_db_provider }} {{ skip }}"
+      args:
+        chdir: "{{ sufia_base_build_dir }}"
+
+    # TODO: conditionally add dependencies based on sufia version
+    # NOTE: presumably not needed with sufia versions >= 7.3
+    - name: add sufia and dependencies to new app's Gemfile
+      blockinfile:
+        dest: "{{ sufia_build_dir }}/Gemfile"
+        block: |
+          gem 'sufia', '{{ sufia_version }}'
         gem 'curation_concerns', '1.6.1'
-        gem 'flipflop', git: 'https://github.com/jcoyne/flipflop.git', branch: 'hydra'
-      marker: "# {mark} Sufia Gems"
+          gem 'flipflop', git: 'https://github.com/jcoyne/flipflop.git', branch: 'hydra'
+        marker: "# {mark} Sufia Gems"
 
-  - name: install the project's gems
-    bundler:
-      chdir: "{{ sufia_build_dir }}"
-      gem_path: "vendor/bundle"
-      exclude_groups: "{{ exclude | default(omit) }}"
+    - name: install the project's gems
+      bundler:
+        chdir: "{{ sufia_build_dir }}"
+        gem_path: "vendor/bundle"
+        exclude_groups: "{{ exclude | default(omit) }}"
 
-  - name: install sufia
-    command: bash -lc "rails generate sufia:install -f"
-    args:
-      chdir: "{{ sufia_build_dir }}"
+    - name: install sufia
+      command: bash -lc "rails generate sufia:install -f"
+      args:
+        chdir: "{{ sufia_build_dir }}"
+
+    # FIXME: regex to respond to <= 7.2
+    when: sufia_version == '7.2.0'
+  # end block
 
   - name: generate primary work type
     command: bash -lc "rails generate sufia:work {{ sufia_work_type }}"

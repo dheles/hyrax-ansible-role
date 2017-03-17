@@ -14,7 +14,7 @@ sufia_work_type:        "Work"
 gems_path:              "/usr/local/lib/ruby/gems/2.3.0/gems/"
 sufia_rebuild:          false
 sufia_redeploy:         false
-# sufia_template:         "https://raw.githubusercontent.com/projecthydra/sufia/master/template.rb"
+sufia_template:         "https://raw.githubusercontent.com/projecthydra/sufia/master/template.rb"
 sufia_inotify_watchers: "524288"
 sufia_mode:             "prod_like" # "dev" | "prod_like"
 solr_core:              "{{ (solr_cores | default(['hydra-development']))[0] }}"
