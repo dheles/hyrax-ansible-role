@@ -261,3 +261,6 @@
 
 - name: configure background workers
   include: configure_background_workers.yml
+
+- name: create default administrative set
+  include: create_administrative_set.yml
