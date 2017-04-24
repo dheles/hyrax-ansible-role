@@ -1,0 +1,33 @@
+---
+
+# TODO: refactor or block, so that all inotify tasks can be run only when / where necessary
+# TODO: this is the better approach, get it to work
+# - name: inotify watcher fix
+#   template:
+#     src: sysctl.conf.j2
+#     dest: /etc/sysctl.d/40-max_user_watches.conf
+#   become: true
+# TODO: fragile. override in sysctl.d instead
+- name: inotify watcher fix
+  lineinfile:
+    dest:   /etc/sysctl.conf
+    regexp: "^fs.inotify.max_user_watches="
+    line:   "fs.inotify.max_user_watches={{ sufia_inotify_watchers }}"
+  become: true
+
+- name: apply inotify watcher fix
+  command: "sysctl -p"
+  become: true
+  changed_when: false
+
+- name: get inotify watchers
+  command: "cat /proc/sys/fs/inotify/max_user_watches"
+  register: inotify_watchers_result
+  changed_when: false
+
+# NOTE: consider not forcing fail here, as the error we are attempting to avoid may not stick around.
+# if it doesn't, we don't really care about inootify watchers
+- name: test inotify watcher fix
+  assert:
+    that: "{{inotify_watchers_result.stdout}} == {{ sufia_inotify_watchers }}"
+    msg: "inotify max_user_watches value: {{inotify_watchers_result.stdout}}; expected value: {{ sufia_inotify_watchers }}"
