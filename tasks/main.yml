@@ -258,3 +258,6 @@
 - name: configure fedora
   include: configure_fedora.yml
   when: sufia_mode == "prod_like"
+
+- name: configure background workers
+  include: configure_background_workers.yml
