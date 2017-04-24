@@ -1,0 +1,26 @@
+---
+# Generate a work type
+#
+# Hyrax allows you to specify your work types by using a generator. You may generate one or more of these work types.
+#
+# Pass a (CamelCased) model name to Hyrax's work generator to get started, e.g.:
+#
+# rails generate hyrax:work Work
+#
+# or
+#
+# rails generate hyrax:work MovingImage
+#
+# Namespaces can be included in the work My::MovingImage by adding the path.
+#
+# rails generate hyrax:work My/MovingImage
+#
+# You may wish to [customize your work type](https://github.com/projecthydra/sufia/wiki/Customizing-your-work-types) now that it's been generated.
+
+# TODO: idempotent?
+- name: generate a work type
+  command: bash -lc "rails generate hyrax:work Work"
+  args:
+    chdir: "{{ sufia_deploy_dir }}"
+  environment:
+    RAILS_ENV: '{{ rails_env }}'
