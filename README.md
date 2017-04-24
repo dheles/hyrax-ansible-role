@@ -1,7 +1,7 @@
-Ansible Role: Sufia
+Ansible Role: Hyrax
 =========
 
-Installs and configures [Sufia](https://github.com/projecthydra/sufia/); an open-source, Hydra-powered repository front-end.
+Installs and configures [Hyrax](https://github.com/projecthydra-labs/hyrax); an open-source, Hydra-powered repository front-end.
 
 WIP Notice
 ----------
@@ -9,20 +9,21 @@ WIP Notice
 This role is a Work-In-Progress. It is limited in the following ways:
 
 * Under active development
-* contains workarounds specific to Sufia version 7.2
-* Creates a new Sufia-based site. Does not yet install an existing site from source-control.
+* Creates a new Hyrax-based site. Does not yet install an existing site from source-control.
 * Only tested within very few OSes/versions
+* Have yet to rename all references from sufia to hyrax
+* Considering supporting both sufia and hyrax (and possibly other hydra-based projects like geoblacklight), but obv not yet
 
 Requirements
 ------------
 
-The following systems must be available for Sufia to function:
+The following systems must be available for Hyrax to function:
 * [Solr](https://lucene.apache.org/solr/)
 * [Fedora Commons](https://www.fedora-commons.org/) repository
 * a SQL database (Postgres, MySQL, or SQLite)
 * [Redis](https://redis.io/) key-value store
 
-See also Dependencies below, for components that must be present on the Sufia server
+See also Dependencies below, for components that must be present on the Hyrax server
 
 Role Variables
 --------------
@@ -41,7 +42,7 @@ Example Playbook
 
     - hosts: servers
       roles:
-         - { role: sufia }
+         - { role: hyrax }
 
 License
 -------
