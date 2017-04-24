@@ -1,0 +1,8 @@
+---
+# TODO: idempotent?
+- name: Load workflows from the json files in config/workflows
+  command: bash -lc "rake hyrax:workflow:load"
+  args:
+    chdir: "{{ sufia_deploy_dir }}"
+  environment:
+    RAILS_ENV: '{{ rails_env }}'
