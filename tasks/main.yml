@@ -32,10 +32,10 @@
     # user_install: no
 
   # FIXME: parameterize to only install when needed
-- name: install pg gem for working with postgres
-  gem:
-    name: pg
-    state: present
+# - name: install pg gem for working with postgres
+#   gem:
+#     name: pg
+#     state: present
 
 # TODO: refactor or block, so that all inotify tasks can be run only when / where necessary
 # TODO: this is the better approach, get it to work
@@ -75,6 +75,10 @@
     path: "{{ sufia_deploy_dir }}"
   register: sufia_deploy_stat
 
+- name: test variables
+  debug:
+    msg: "sufia_version: {{ sufia_version }}"
+
   # build block
 - block:
   - name: clear out sufia build dir for redeployment
@@ -92,13 +96,15 @@
       skip: "--skip-spring"
     when: rails_env == 'production'
 
-  # FIXME: regex to respond to >= 7.3 (not just rc1)
+  # FIXME: regex to respond to >= 7.3
   # TODO: this will become recommended practice with sufia version 7.3
+  # FIXME: DISABLED... this runs db:migrate before db is configured, so it uses SQLite, not Postgres (i think)
+  # it works, but then the second run of db:migrate (below) fails...
   - name: create rails app from template
     command: bash -lc "rails new {{ sufia_app_name }} -m {{ sufia_template }} --database={{ sufia_db_provider }} {{ skip }}"
     args:
       chdir: "{{ sufia_base_build_dir }}"
-    when: sufia_version == '7.3.0.rc1'
+    when: sufia_version == '7.3.0' and false
 
     # block for sufia version <= 7.2
   - block:
@@ -107,15 +113,20 @@
       args:
         chdir: "{{ sufia_base_build_dir }}"
 
+    - name: test sufia_version variables
+      debug:
+        msg: "sufia_version: {{ sufia_version }}"
+
+    - name: test sufia_gems variables
+      debug:
+        msg: "sufia_gems: {{ sufia_gems }}"
+
     # TODO: conditionally add dependencies based on sufia version
     # NOTE: presumably not needed with sufia versions >= 7.3
     - name: add sufia and dependencies to new app's Gemfile
       blockinfile:
         dest: "{{ sufia_build_dir }}/Gemfile"
-        block: |
-          gem 'sufia', '{{ sufia_version }}'
-          gem 'curation_concerns', '1.6.1'
-          gem 'flipflop', git: 'https://github.com/jcoyne/flipflop.git', branch: 'hydra'
+        block: "{{ sufia_gems }}"
         marker: "# {mark} Sufia Gems"
 
     - name: install the project's gems
@@ -130,13 +141,8 @@
         chdir: "{{ sufia_build_dir }}"
 
     # FIXME: regex to respond to <= 7.2
-    when: sufia_version == '7.2.0'
+    when: sufia_version == '7.2.0' or true
   # end block
-
-  - name: generate primary work type
-    command: bash -lc "rails generate sufia:work {{ sufia_work_type }}"
-    args:
-      chdir: "{{ sufia_build_dir }}"
 
     # TODO: review - only prod_like?
   - name: configure database
@@ -148,16 +154,26 @@
     # on a production system. it is necessitated by the fact that sufia's
     # database migrations are not idempotent. should they be?
     # IDK, but until they are, there's this
-  - name: reset database !DESTRUCTIVELY!
-    include: reset_database.yml
-    when: sufia_breaking_stuff_is_ok and sufia_mode == "prod_like"
+  - block:
+    - name: reset database !DESTRUCTIVELY!
+      include: reset_database.yml
+      when: sufia_breaking_stuff_is_ok and sufia_mode == "prod_like"
 
-  - name: database migrations
-    command: bash -lc "rake db:migrate"
+    - name: database migrations
+      command: bash -lc "rake db:migrate"
+      args:
+        chdir: "{{ sufia_build_dir }}"
+      environment:
+        RAILS_ENV: '{{ rails_env }}'
+
+    # FIXME: regex to respond to <= 7.2
+    when: true # sufia_version == '7.2.0
+    # TODO: investigate necessity under various circumstances
+
+  - name: generate primary work type
+    command: bash -lc "rails generate sufia:work {{ sufia_work_type }}"
     args:
       chdir: "{{ sufia_build_dir }}"
-    environment:
-      RAILS_ENV: '{{ rails_env }}'
 
   when: sufia_rebuild
   # end build block

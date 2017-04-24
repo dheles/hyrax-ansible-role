@@ -1,2 +1,9 @@
 ---
-# vars file for sufia
+sufia_version_gems: "{{ vars[sufia_version + '_gems'] }}"
+# FIXME: apparently, variable substitution in a value of a dynamically
+# called variable does not work. will need to find another way to avoid hardcoding
+# 7.3.0_gems:  "gem 'sufia', '{{ sufia_version }}'"
+7.3.0_gems:  "gem 'sufia', '7.3.0'"
+7.2.0_gems:  "gem 'sufia', '7.2.0'
+              gem 'curation_concerns', '1.6.1'
+              gem 'flipflop', git: 'https://github.com/jcoyne/flipflop.git', branch: 'hydra'"
