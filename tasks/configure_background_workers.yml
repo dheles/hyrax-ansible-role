@@ -2,7 +2,7 @@
 # TODO: should this go on config/environments/development.rb and test.rb?
 - name: adjust queueing for development
   lineinfile:
-    dest: "{{ sufia_build_dir }}/config/application.rb"
+    dest: "{{ sufia_deploy_dir }}/config/application.rb"
     regexp: "^config.active_job.queue_adapter"
     line: "config.active_job.queue_adapter = :inline"
     insertafter: 'class Application < Rails::Application'
