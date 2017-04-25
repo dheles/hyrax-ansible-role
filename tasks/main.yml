@@ -142,10 +142,10 @@
     when: true # sufia_version == '7.2.0
     # TODO: investigate necessity under various circumstances
 
-  - name: generate primary work type
-    command: bash -lc "rails generate sufia:work {{ sufia_work_type }}"
-    args:
-      chdir: "{{ sufia_build_dir }}"
+  # - name: generate primary work type
+  #   command: bash -lc "rails generate sufia:work {{ sufia_work_type }}"
+  #   args:
+  #     chdir: "{{ sufia_build_dir }}"
 
   when: sufia_rebuild
   # end build block
@@ -259,14 +259,28 @@
   include: configure_fedora.yml
   when: sufia_mode == "prod_like"
 
-- name: configure background workers
-  include: configure_background_workers.yml
+- name: flush handlers after configuring
+  meta: flush_handlers
 
-- name: create default administrative set
-  include: create_administrative_set.yml
+# FIXME: this shouldn't really be necessary to do again here...
+# I believe it is because the template isn't aware of RAILS_ENV
+- name: database migrations
+  command: bash -lc "rake db:migrate"
+  args:
+    chdir: "{{ sufia_deploy_dir }}"
+  environment:
+    RAILS_ENV: '{{ rails_env }}'
 
-- name: load workflows
-  include: load_workflows.yml
+- block:
+  - name: configure background workers
+    include: configure_background_workers.yml
 
-- name: generate a work type
-  include: generate_work_type.yml
+  - name: create default administrative set
+    include: create_administrative_set.yml
+
+  - name: load workflows
+    include: load_workflows.yml
+
+  - name: generate a work type
+    include: generate_work_type.yml
+  when: true
