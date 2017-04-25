@@ -42,6 +42,11 @@
   include: inotify_watcher_fix.yml
 
   # TODO: consider assertion or flow control to prevent unproductive rebuild/redeploy settings on fresh system
+- name: stat sufia build dir
+  stat:
+    path: "{{ sufia_build_dir }}"
+  register: sufia_build_stat
+
 - name: stat sufia deploy dir
   stat:
     path: "{{ sufia_deploy_dir }}"
@@ -139,7 +144,7 @@
         RAILS_ENV: '{{ rails_env }}'
 
     # FIXME: regex to respond to <= 7.2
-    when: true # sufia_version == '7.2.0
+    when: sufia_version == '7.2.0
     # TODO: investigate necessity under various circumstances
 
   # - name: generate primary work type
@@ -147,10 +152,11 @@
   #   args:
   #     chdir: "{{ sufia_build_dir }}"
 
-  when: sufia_rebuild
+  # TODO: test this logic...
+  when: sufia_rebuild or (not sufia_deploy_stat.stat.exists and not sufia_build_stat.stat.exists)
   # end build block
 
-- name: stat sufia build dir
+- name: re-stat sufia build dir
   stat:
     path: "{{ sufia_build_dir }}"
   register: sufia_build_stat
@@ -206,7 +212,7 @@
 
   # NOTE: can't deploy w/o something built
   # TODO: consider reflow to avoid illogical conditions
-  when: sufia_build_stat.stat.exists
+  when: sufia_build_stat.stat.exists and sufia_redeploy
   become: true
   # end deploy block
 
