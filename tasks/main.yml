@@ -81,7 +81,7 @@
     command: bash -lc "rails new {{ sufia_app_name }} -m {{ sufia_template }} --database={{ sufia_db_provider }} {{ skip }}"
     args:
       chdir: "{{ sufia_base_build_dir }}"
-    when: sufia_version == '7.3.0' and false
+    when: hydra_from_template # sufia_version == '7.3.0' and false
 
     # block for sufia version <= 7.2
   - block:
@@ -118,7 +118,7 @@
         chdir: "{{ sufia_build_dir }}"
 
     # FIXME: regex to respond to <= 7.2
-    when: sufia_version == '7.2.0' or true
+    when: not hydra_from_template # sufia_version == '7.2.0' or true
   # end block
 
     # TODO: review - only prod_like?
@@ -144,7 +144,7 @@
         RAILS_ENV: '{{ rails_env }}'
 
     # FIXME: regex to respond to <= 7.2
-    when: sufia_version == '7.2.0
+    when: not hydra_from_template # sufia_version == '7.2.0
     # TODO: investigate necessity under various circumstances
 
   # - name: generate primary work type
