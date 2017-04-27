@@ -21,8 +21,11 @@ sufia_redeploy:         false
 sufia_template:         "https://raw.githubusercontent.com/projecthydra-labs/hyrax/master/template.rb"
 sufia_inotify_watchers: "524288"
 sufia_mode:             "prod_like" # "dev" | "prod_like"
+# solr vars
 solr_core:              "{{ (solr_cores | default(['hydra-development']))[0] }}"
 solr_user:              "solr"
+solr_url:               "127.0.0.1"
+solr_port:              "8983"
 # DB vars
 sufia_db_provider:      "{{ db_provider           | default('sqlite3') }}"
 sufia_db_encoding:      "{{ db_encoding           | default('unicode') }}"

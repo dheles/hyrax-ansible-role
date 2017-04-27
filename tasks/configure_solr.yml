@@ -2,6 +2,7 @@
 # NOTE: the solr core is created by the containing playbook,
 # at the time of installation (i.e. before this point),
 # using functionality built into the solr role
+# TODO: adjust to configure for multiple cores
 
 - name: test variables
   debug:
@@ -18,5 +19,15 @@
   with_items:
     - "schema.xml"
     - "solrconfig.xml"
+  become: true
+  notify: restart solr
+
+# NOTE: this will overwrite the solr.yml file created when building with RAILS_ENV=development
+- name: template solr.yml
+  template:
+    src: "solr.yml.j2"
+    dest: "{{ sufia_deploy_dir }}/config/solr.yml"
+    owner: "{{ sufia_app_user }}"
+    group: "{{ sufia_app_user }}"
   become: true
   notify: restart solr
