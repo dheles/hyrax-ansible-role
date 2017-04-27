@@ -212,7 +212,7 @@
 
   # NOTE: can't deploy w/o something built
   # TODO: consider reflow to avoid illogical conditions
-  when: sufia_build_stat.stat.exists and sufia_redeploy
+  when: sufia_build_stat.stat.exists and (sufia_redeploy or not sufia_deploy_stat.stat.exists)
   become: true
   # end deploy block
 
