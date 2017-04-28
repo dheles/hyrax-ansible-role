@@ -1,0 +1,11 @@
+---
+- name: clear out sufia build dir to get a fresh copy
+  file:
+    path: "{{ sufia_build_dir }}"
+    state: absent
+
+- name: get application from repo
+  git:
+    repo: "{{ sufia_app_repo }}"
+    dest: "{{ sufia_build_dir }}"
+    version: "{{ sufia_app_branch | default('HEAD') }}"

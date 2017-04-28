@@ -1,7 +1,7 @@
 ---
 # builds a new hydra-based rails application
 
-- name: clear out sufia build dir for redeployment
+- name: clear out sufia build dir to build fresh
   file:
     path: "{{ sufia_build_dir }}"
     state: absent

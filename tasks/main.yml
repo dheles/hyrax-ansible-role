@@ -56,9 +56,19 @@
   debug:
     msg: "sufia_version: {{ sufia_version }}"
 
+- name: prevent mutually-exclusive build settings
+  assert:
+    that:
+      - not (sufia_build_app and sufia_get_app)
+    msg: "sufia_build_app and sufia_get_app are mutually exclusive"
+
 - name: build a new application
   include: build_application.yml
-  when: sufia_rebuild or (not sufia_deploy_stat.stat.exists and not sufia_build_stat.stat.exists)
+  when: sufia_build_app # sufia_rebuild or (not sufia_deploy_stat.stat.exists and not sufia_build_stat.stat.exists)
+
+- name: get existing application from a repo
+  include: get_application.yml
+  when: sufia_get_app
 
 - name: re-stat sufia build dir
   stat:
@@ -145,4 +155,4 @@
 
   - name: generate a work type
     include: generate_work_type.yml
-  when: true
+  when: false

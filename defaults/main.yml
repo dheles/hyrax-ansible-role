@@ -18,7 +18,14 @@ gems_path:              "/usr/local/lib/ruby/gems/2.3.0/gems/"
 sufia_gems:             "{{ sufia_version_gems }}"
 sufia_rebuild:          false
 sufia_redeploy:         false
+# NOTE: build_app and get_app are mutually exclusive, though both can reasonably be set to false, if an app already exists in the build directory
+# TODO: consider whether the ability to compare build and stored apps would be worthwhile
+sufia_build_app:        "{{ build_app | default(false) }}"
+sufia_get_app:          "{{ get_app | default(true) }}"
 sufia_template:         "https://raw.githubusercontent.com/projecthydra-labs/hyrax/master/template.rb"
+# is this a good default? IDK, but in the absence of a reference application, it can't be any less useful than a dummy url, rt?
+sufia_app_repo:         "{{ app_repo | default('https://github.com/projecthydra-labs/hyku')}}"
+sufia_app_branch:       "{{ app_branch | default('master')}}"
 sufia_inotify_watchers: "524288"
 sufia_mode:             "prod_like" # "dev" | "prod_like"
 # solr vars
