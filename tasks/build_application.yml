@@ -88,3 +88,11 @@
   # FIXME: regex to respond to <= 7.2
   when: not hydra_from_template # sufia_version == '7.2.0
   # TODO: investigate necessity under various circumstances
+
+- name: add to gitignore
+  blockinfile:
+    dest: "{{ sufia_build_dir }}/.gitignore"
+    block: |
+      /vendor/bundle
+      /config/secrets.yml
+    marker: "# {mark} additional lines"
