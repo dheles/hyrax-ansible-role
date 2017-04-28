@@ -56,165 +56,21 @@
   debug:
     msg: "sufia_version: {{ sufia_version }}"
 
-  # build block
-- block:
-  - name: clear out sufia build dir for redeployment
-    file:
-      path: "{{ sufia_build_dir }}"
-      state: absent
-
-  # NOTE: don't install spring in production environments:
-  # https://github.com/projecthydra/hydra-head/issues/201
-  - name: adjust for the rails environment
-    set_fact:
-      skip: ""
-  - set_fact:
-      exclude: "development, test"
-      skip: "--skip-spring"
-    when: rails_env == 'production'
-
-  # FIXME: regex to respond to >= 7.3
-  # TODO: this will become recommended practice with sufia version 7.3
-  # FIXME: DISABLED... this runs db:migrate before db is configured, so it uses SQLite, not Postgres (i think)
-  # it works, but then the second run of db:migrate (below) fails...
-  - name: create rails app from template
-    command: bash -lc "rails new {{ sufia_app_name }} -m {{ sufia_template }} --database={{ sufia_db_provider }} {{ skip }}"
-    args:
-      chdir: "{{ sufia_base_build_dir }}"
-    when: hydra_from_template # sufia_version == '7.3.0' and false
-
-    # block for sufia version <= 7.2
-  - block:
-    - name: create rails app
-      command: bash -lc "rails new {{ sufia_app_name }} --database={{ sufia_db_provider }} {{ skip }}"
-      args:
-        chdir: "{{ sufia_base_build_dir }}"
-
-    - name: test sufia_version variables
-      debug:
-        msg: "sufia_version: {{ sufia_version }}"
-
-    - name: test sufia_gems variables
-      debug:
-        msg: "sufia_gems: {{ sufia_gems }}"
-
-    # TODO: conditionally add dependencies based on sufia version
-    # NOTE: presumably not needed with sufia versions >= 7.3
-    - name: add sufia and dependencies to new app's Gemfile
-      blockinfile:
-        dest: "{{ sufia_build_dir }}/Gemfile"
-        block: "{{ sufia_gems }}"
-        marker: "# {mark} Sufia Gems"
-
-    - name: install the project's gems
-      bundler:
-        chdir: "{{ sufia_build_dir }}"
-        gem_path: "vendor/bundle"
-        exclude_groups: "{{ exclude | default(omit) }}"
-
-    - name: install sufia
-      command: bash -lc "rails generate sufia:install -f"
-      args:
-        chdir: "{{ sufia_build_dir }}"
-
-    # FIXME: regex to respond to <= 7.2
-    when: not hydra_from_template # sufia_version == '7.2.0' or true
-  # end block
-
-    # TODO: review - only prod_like?
-  - name: configure database
-    include: configure_database.yml
-    when: sufia_mode == "prod_like"
-
-    # NOTE: this DESTRUCTIVE task is the sort of thing you'd need to use when
-    # when developing, but sure isn't what you'd want to forget about and run
-    # on a production system. it is necessitated by the fact that sufia's
-    # database migrations are not idempotent. should they be?
-    # IDK, but until they are, there's this
-  - block:
-    - name: reset database !DESTRUCTIVELY!
-      include: reset_database.yml
-      when: sufia_breaking_stuff_is_ok and sufia_mode == "prod_like"
-
-    - name: database migrations
-      command: bash -lc "rake db:migrate"
-      args:
-        chdir: "{{ sufia_build_dir }}"
-      environment:
-        RAILS_ENV: '{{ rails_env }}'
-
-    # FIXME: regex to respond to <= 7.2
-    when: not hydra_from_template # sufia_version == '7.2.0
-    # TODO: investigate necessity under various circumstances
-
-  # - name: generate primary work type
-  #   command: bash -lc "rails generate sufia:work {{ sufia_work_type }}"
-  #   args:
-  #     chdir: "{{ sufia_build_dir }}"
-
-  # TODO: test this logic...
+- name: build a new application
+  include: build_application.yml
   when: sufia_rebuild or (not sufia_deploy_stat.stat.exists and not sufia_build_stat.stat.exists)
-  # end build block
 
 - name: re-stat sufia build dir
   stat:
     path: "{{ sufia_build_dir }}"
   register: sufia_build_stat
 
-  # deploy block
-- block:
-    # TODO: specify uid and add app group with specific gid, for project_code use
-  - name: add app user
-    user:
-      name: "{{ sufia_app_user }}"
-      shell: "/bin/bash"
-
-  - name: remove existing deploy directory, if redeploying
-    file:
-      path: "{{ sufia_deploy_dir }}"
-      state: absent
-    when: sufia_redeploy
-
-  - name: add args to handle redeployment
-    set_fact:
-      created_deploy_dir: "/nonexistent/path/to/subvert/creates/argument"
-  - set_fact:
-      created_deploy_dir: "{{ sufia_deploy_dir }}"
-    when: not sufia_redeploy
-
-  - name: deploy sufia
-    command: mv {{ sufia_build_dir }} {{ sufia_deploy_dir }}
-    args:
-      creates: "{{ created_deploy_dir }}"
-    when: sufia_redeploy or not sufia_deploy_stat.stat.exists
-
-  - name: configure bundle install based on sufia_mode
-    set_fact:
-      sufia_deployment_mode: false
-  - set_fact:
-      sufia_deployment_mode: true
-    when: sufia_mode == "prod_like"
-
-  - name: install the project's gems for deployment
-    bundler:
-      chdir: "{{ sufia_deploy_dir }}"
-      gem_path: "vendor/bundle"
-      deployment_mode: "{{ sufia_deployment_mode }}"
-
-  - name: reassign ownership of deployed application
-    file:
-      path:     "{{ sufia_deploy_dir }}"
-      owner:    "{{ sufia_app_user }}"
-      group:    "{{ sufia_app_user }}"
-      state:    directory
-      recurse:  true
-    notify: restart apache
-
+- name: deploy the application in the build directory
+  include: deploy_application.yml
   # NOTE: can't deploy w/o something built
   # TODO: consider reflow to avoid illogical conditions
   when: sufia_build_stat.stat.exists and (sufia_redeploy or not sufia_deploy_stat.stat.exists)
   become: true
-  # end deploy block
 
   # FIXME: this is not a good solution. issue may be that the deploy dir is mounted.
   # may need to provide secontext as mount option.

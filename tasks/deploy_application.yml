@@ -1,0 +1,49 @@
+---
+# deploys the application in the build directory
+
+# TODO: specify uid and add app group with specific gid, for project_code use
+- name: add app user
+  user:
+    name: "{{ sufia_app_user }}"
+    shell: "/bin/bash"
+
+- name: remove existing deploy directory, if redeploying
+  file:
+    path: "{{ sufia_deploy_dir }}"
+    state: absent
+  when: sufia_redeploy
+
+- name: add args to handle redeployment
+  set_fact:
+    created_deploy_dir: "/nonexistent/path/to/subvert/creates/argument"
+- set_fact:
+    created_deploy_dir: "{{ sufia_deploy_dir }}"
+  when: not sufia_redeploy
+
+- name: deploy sufia
+  command: mv {{ sufia_build_dir }} {{ sufia_deploy_dir }}
+  args:
+    creates: "{{ created_deploy_dir }}"
+  when: sufia_redeploy or not sufia_deploy_stat.stat.exists
+
+- name: configure bundle install based on sufia_mode
+  set_fact:
+    sufia_deployment_mode: false
+- set_fact:
+    sufia_deployment_mode: true
+  when: sufia_mode == "prod_like"
+
+- name: install the project's gems for deployment
+  bundler:
+    chdir: "{{ sufia_deploy_dir }}"
+    gem_path: "vendor/bundle"
+    deployment_mode: "{{ sufia_deployment_mode }}"
+
+- name: reassign ownership of deployed application
+  file:
+    path:     "{{ sufia_deploy_dir }}"
+    owner:    "{{ sufia_app_user }}"
+    group:    "{{ sufia_app_user }}"
+    state:    directory
+    recurse:  true
+  notify: restart apache

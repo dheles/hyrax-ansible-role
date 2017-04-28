@@ -1,0 +1,90 @@
+---
+# builds a new hydra-based rails application
+
+- name: clear out sufia build dir for redeployment
+  file:
+    path: "{{ sufia_build_dir }}"
+    state: absent
+
+# NOTE: don't install spring in production environments:
+# https://github.com/projecthydra/hydra-head/issues/201
+- name: adjust for the rails environment
+  set_fact:
+    skip: ""
+- set_fact:
+    exclude: "development, test"
+    skip: "--skip-spring"
+  when: rails_env == 'production'
+
+# FIXME: regex to respond to >= 7.3
+# TODO: this will become recommended practice with sufia version 7.3
+# FIXME: DISABLED... this runs db:migrate before db is configured, so it uses SQLite, not Postgres (i think)
+# it works, but then the second run of db:migrate (below) fails...
+- name: create rails app from template
+  command: bash -lc "rails new {{ sufia_app_name }} -m {{ sufia_template }} --database={{ sufia_db_provider }} {{ skip }}"
+  args:
+    chdir: "{{ sufia_base_build_dir }}"
+  when: hydra_from_template # sufia_version == '7.3.0' and false
+
+  # block for non-templated application
+- block:
+  - name: create rails app
+    command: bash -lc "rails new {{ sufia_app_name }} --database={{ sufia_db_provider }} {{ skip }}"
+    args:
+      chdir: "{{ sufia_base_build_dir }}"
+
+  - name: test sufia_version variables
+    debug:
+      msg: "sufia_version: {{ sufia_version }}"
+
+  - name: test sufia_gems variables
+    debug:
+      msg: "sufia_gems: {{ sufia_gems }}"
+
+  # TODO: conditionally add dependencies based on sufia version
+  # NOTE: presumably not needed with sufia versions >= 7.3
+  - name: add sufia and dependencies to new app's Gemfile
+    blockinfile:
+      dest: "{{ sufia_build_dir }}/Gemfile"
+      block: "{{ sufia_gems }}"
+      marker: "# {mark} Sufia Gems"
+
+  - name: install the project's gems
+    bundler:
+      chdir: "{{ sufia_build_dir }}"
+      gem_path: "vendor/bundle"
+      exclude_groups: "{{ exclude | default(omit) }}"
+
+  - name: "install {{ hydra_head_type }}"
+    command: bash -lc "rails generate {{ hydra_head_type }}:install -f"
+    args:
+      chdir: "{{ sufia_build_dir }}"
+
+  when: not hydra_from_template
+# end block
+
+  # TODO: review - only prod_like?
+- name: configure database
+  include: configure_database.yml
+  when: sufia_mode == "prod_like"
+
+  # NOTE: this DESTRUCTIVE task is the sort of thing you'd need to use when
+  # when developing, but sure isn't what you'd want to forget about and run
+  # on a production system. it is necessitated by the fact that sufia's
+  # database migrations are not idempotent. should they be?
+  # IDK, but until they are, there's this
+- block:
+  - name: reset database !DESTRUCTIVELY!
+    include: reset_database.yml
+    when: sufia_breaking_stuff_is_ok and sufia_mode == "prod_like"
+
+  - name: database migrations
+    command: bash -lc "rake db:migrate"
+    args:
+      chdir: "{{ sufia_build_dir }}"
+    environment:
+      RAILS_ENV: '{{ rails_env }}'
+
+  # FIXME: regex to respond to <= 7.2
+  when: not hydra_from_template # sufia_version == '7.2.0
+  # TODO: investigate necessity under various circumstances
