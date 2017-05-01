@@ -108,7 +108,7 @@
   command: "openssl rand -hex 64"
   register: secret_key_base
 - lineinfile:
-    dest: "/home/{{ app_user }}/.bashrc"
+    dest: "/home/{{ sufia_app_user }}/.bashrc"
     regexp: "^export SECRET_KEY_BASE="
     line: "export SECRET_KEY_BASE={{ secret_key_base.stdout }}"
     state: "present"
@@ -142,6 +142,7 @@
     chdir: "{{ sufia_deploy_dir }}"
   environment:
     RAILS_ENV: '{{ rails_env }}'
+    SECRET_KEY_BASE: "{{ secret_key_base.stdout }}"
 
 - block:
   - name: configure background workers
@@ -155,4 +156,4 @@
 
   - name: generate a work type
     include: generate_work_type.yml
-  when: false
+  when: true
