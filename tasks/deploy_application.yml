@@ -21,7 +21,7 @@
   when: not sufia_redeploy
 
 - name: deploy sufia
-  command: mv {{ sufia_build_dir }} {{ sufia_deploy_dir }}
+  command: cp -r {{ sufia_build_dir }} {{ sufia_deploy_dir }}
   args:
     creates: "{{ created_deploy_dir }}"
   when: sufia_redeploy or not sufia_deploy_stat.stat.exists
