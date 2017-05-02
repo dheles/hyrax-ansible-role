@@ -1,0 +1,18 @@
+---
+# TODO: enable Far-future Expires Header http://guides.rubyonrails.org/asset_pipeline.html#far-future-expires-header
+- name: precompile assets
+  command: bash -lc "rails assets:precompile"
+  args:
+    chdir: "{{ sufia_deploy_dir }}"
+  environment:
+    RAILS_ENV: '{{ rails_env }}'
+    SECRET_KEY_BASE: "{{ secret_key_base.stdout }}"
+
+- name: reassign ownership of compiled assets
+  file:
+    path:     "{{ sufia_deploy_dir }}/public"
+    owner:    "{{ sufia_app_user }}"
+    group:    "{{ sufia_app_user }}"
+    state:    directory
+    recurse:  true
+  notify: restart apache

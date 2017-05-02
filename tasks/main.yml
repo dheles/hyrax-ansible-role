@@ -169,4 +169,7 @@
   # - name: generate a work type
   #   include: generate_work_type.yml
 
+  - name: precompile assets
+    include: precompile_assets.yml
+
   when: sufia_mode == "prod_like"
