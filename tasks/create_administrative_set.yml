@@ -1,9 +1,10 @@
 ---
 # TODO: idempotent?
 - name: create default administrative set
-  command: bash -lc "rake hyrax:default_admin_set:create"
+  command: bash -lc "rails hyrax:default_admin_set:create"
   args:
     chdir: "{{ sufia_deploy_dir }}"
   environment:
     RAILS_ENV: '{{ rails_env }}'
     SECRET_KEY_BASE: "{{ secret_key_base.stdout }}"
+    SUFIA_DATABASE_PASSWORD: "{{ sufia_db_pass }}"

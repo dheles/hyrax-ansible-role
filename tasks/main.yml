@@ -107,13 +107,24 @@
   # command: bash -lc "bundle exec rake secret"
   command: "openssl rand -hex 64"
   register: secret_key_base
+  no_log: true
 - lineinfile:
     dest: "/home/{{ sufia_app_user }}/.bashrc"
     regexp: "^export SECRET_KEY_BASE="
     line: "export SECRET_KEY_BASE={{ secret_key_base.stdout }}"
     state: "present"
+  no_log: true
   become: true
   notify: restart apache
+
+- name: store database password in app user's environment
+  lineinfile:
+    dest: "/home/{{ sufia_app_user }}/.bashrc"
+    regexp: "^export SUFIA_DATABASE_PASSWORD="
+    line: "export SUFIA_DATABASE_PASSWORD={{ sufia_db_pass }}"
+    state: "present"
+  no_log: true
+  become: true
 
 - name: start servers
   shell: screen -dm bash -c "bundle exec rake hydra:server >& log/sufia.log"
@@ -137,12 +148,13 @@
 # FIXME: this shouldn't really be necessary to do again here...
 # I believe it is because the template isn't aware of RAILS_ENV
 - name: database migrations
-  command: bash -lc "rake db:migrate"
+  command: bash -lc "rails db:migrate"
   args:
     chdir: "{{ sufia_deploy_dir }}"
   environment:
     RAILS_ENV: '{{ rails_env }}'
     SECRET_KEY_BASE: "{{ secret_key_base.stdout }}"
+    SUFIA_DATABASE_PASSWORD: "{{ sufia_db_pass }}"
 
 - block:
   - name: configure background workers

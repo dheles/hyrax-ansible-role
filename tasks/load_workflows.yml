@@ -1,9 +1,10 @@
 ---
 # TODO: idempotent?
 - name: Load workflows from the json files in config/workflows
-  command: bash -lc "rake hyrax:workflow:load"
+  command: bash -lc "rails hyrax:workflow:load"
   args:
     chdir: "{{ sufia_deploy_dir }}"
   environment:
     RAILS_ENV: '{{ rails_env }}'
     SECRET_KEY_BASE: "{{ secret_key_base.stdout }}"
+    SUFIA_DATABASE_PASSWORD: "{{ sufia_db_pass }}"
