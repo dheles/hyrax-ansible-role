@@ -166,7 +166,7 @@
   - name: load workflows
     include: load_workflows.yml
 
-  - name: generate a work type
-    include: generate_work_type.yml
+  # - name: generate a work type
+  #   include: generate_work_type.yml
 
   when: sufia_mode == "prod_like"
