@@ -6,9 +6,13 @@
     state: restarted
   become: true
 
+# FIXME: using sufia_mode test to avoid trying to restart apache when it isn't being used
+# since notify apparently cannot be conditional. this approach works,
+# but seems fragile or at least inelegant.
 - name: restart apache
   service:
     name: "{{ apache_service }}"
     enabled: true
     state: restarted
   become: true
+  when: sufia_mode == "prod_like"
