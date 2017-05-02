@@ -94,5 +94,4 @@
     dest: "{{ sufia_build_dir }}/.gitignore"
     block: |
       /vendor/bundle
-      /config/secrets.yml
     marker: "# {mark} additional lines"
