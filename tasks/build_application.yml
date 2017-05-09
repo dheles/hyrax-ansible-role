@@ -6,6 +6,11 @@
     path: "{{ sufia_build_dir }}"
     state: absent
 
+- name: make sure base build dir exists
+  file:
+    path: "{{ sufia_base_build_dir }}"
+    state: directory
+
 # NOTE: don't install spring in production environments:
 # https://github.com/projecthydra/hydra-head/issues/201
 - name: adjust for the rails environment
