@@ -186,6 +186,9 @@
   # - name: generate a work type
   #   include: generate_work_type.yml
 
+  - name: configure role_map
+    include: configure_role_map.yml
+
   # FIXME: this doesn't seem to work before the application has been visited for the first time
   # try to find a way to simulate that programmatically
   - name: precompile assets

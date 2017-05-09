@@ -1,0 +1,24 @@
+development:
+  admin:
+    - {{ sufia_admin_email }}
+
+test:
+  admin:
+    - {{ sufia_admin_email }}
+
+production:
+  admin:
+    - {{ sufia_admin_email }}
+    
+{#
+# TODO: too expensive for what we need for right now...
+{% for environment in role_map %}
+  {{ environment }}:
+    {% for role in item.value[item] %}
+    {{ item.value.role }}:
+     #{% for member in environment[roles][members] %}
+     #- {{ member }}
+     #{% endfor %}
+   {% endfor %}
+{% endfor %}
+#}

@@ -28,6 +28,7 @@ sufia_app_repo:         "{{ app_repo | default('https://github.com/projecthydra-
 sufia_app_branch:       "{{ app_branch | default('master')}}"
 sufia_inotify_watchers: "524288"
 sufia_mode:             "prod_like" # "dev" | "prod_like"
+sufia_admin_email:      "admin@hyrax.test"
 # solr vars
 solr_core:              "{{ (solr_cores | default(['hydra-development']))[0] }}"
 solr_user:              "solr"
@@ -47,3 +48,32 @@ fcrepo_admin_user:      ""
 fcrepo_admin_pass:      ""
 fcrepo_url:             "127.0.0.1"
 fcrepo_port:            "8080"
+
+# a couple unsuccessful stabs at a role_map dict(ionary) variable, for posterity... 
+# role_map:
+#   development:
+#     - { role: "admin",     members: [ "admin1@dev.test", "admin2@dev.test" ] }
+#     - { role: "archivist", members: [ "archivist1@dev.test", "archivist2@dev.test" ] }
+#   test:
+#     - { role: "admin",     members: [ "admin1@test.test", "admin2@test.test" ] }
+#     - { role: "archivist", members: [ "archivist1@test.test", "archivist2@test.test" ] }
+
+# role_map:
+#   development:
+#     - role: admin
+#       members:
+#         - "admin1@test.test"
+#         - "admin2@test.test"
+#     - role: archivist
+#       members:
+#         - "archivist1@dev.test"
+#         - "archivist2@dev.test"
+  # test:
+  #   role:               "admin"
+  #   members:
+  #     - "admin1@test.test"
+  #     - "admin2@test.test"
+  #   role:               "archivist"
+  #   members:
+  #     - "archivist1@test.test"
+  #     - "archivist2@test.test"

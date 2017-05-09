@@ -1,0 +1,8 @@
+---
+- name: template role_map.yml
+  template:
+    src: "role_map.yml.j2"
+    dest: "{{ sufia_deploy_dir }}/config/role_map.yml"
+  become: true
+  become_user: "{{ sufia_app_user }}"
+  # with_dict: "{{ role_map }}"
