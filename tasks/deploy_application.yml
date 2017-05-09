@@ -1,12 +1,6 @@
 ---
 # deploys the application in the build directory
 
-# TODO: specify uid and add app group with specific gid, for project_code use
-- name: add app user
-  user:
-    name: "{{ sufia_app_user }}"
-    shell: "/bin/bash"
-
 - name: remove existing deploy directory, if redeploying
   file:
     path: "{{ sufia_deploy_dir }}"

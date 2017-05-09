@@ -24,12 +24,29 @@
   include: "{{ansible_os_family}}_prereqs.yml"
   become: true
 
-- name: install rails
+# TODO: specify uid and add app group with specific gid, for project_code use
+- name: add app user
+  user:
+    name: "{{ sufia_app_user }}"
+    shell: "/bin/bash"
+  become: true
+
+# NOTE: can't convince the gem module to install rails for the app user
+- name: install rails for application user
+  command: bash -lc "gem install --version {{ rails_version }} --user-install --no-document rails"
+  become: true
+  become_user: "{{ sufia_app_user }}"
+
+- name: install rails for application and ansible (login) user
   gem:
     name: rails
     version: "{{ rails_version }}"
     state: present
     # user_install: no
+  become_user: "{{ item }}"
+  with_items:
+    - "{{ ansible_env.USER }}"
+    # - "{{ sufia_app_user }}"
 
   # FIXME: parameterize to only install when needed
 # - name: install pg gem for working with postgres
@@ -169,7 +186,11 @@
   # - name: generate a work type
   #   include: generate_work_type.yml
 
+  # FIXME: this doesn't seem to work before the application has been visited for the first time
+  # try to find a way to simulate that programmatically
   - name: precompile assets
     include: precompile_assets.yml
 
   when: sufia_mode == "prod_like"
+  become: true
+  become_user: "{{ sufia_app_user }}"
