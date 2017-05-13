@@ -4,18 +4,18 @@
 #   PATH:       "{{ bundler_path }}:{{ ansible_env.PATH }}"
 
   # TODO: review: not at all sure these are having any effect, at least on CentOS
-- name: set environment variables
-  become: true
-  lineinfile:
-    dest: /etc/environment
-    regexp: "{{ item.regexp }}"
-    line: "{{ item.line }}"
-    state: "present"
-  with_items:
-    - regexp: "^RAILS_ENV="
-      line:    "RAILS_ENV={{ rails_env }}"
-    - regexp: "^PATH="
-      line:    "PATH={{ bundler_path }}:{{ gems_path }}:{{ ansible_env.PATH }}"
+# - name: set environment variables
+#   become: true
+#   lineinfile:
+#     dest: /etc/environment
+#     regexp: "{{ item.regexp }}"
+#     line: "{{ item.line }}"
+#     state: "present"
+#   with_items:
+#     - regexp: "^RAILS_ENV="
+#       line:    "RAILS_ENV={{ rails_env }}"
+#     - regexp: "^PATH="
+#       line:    "PATH={{ bundler_path }}:{{ gems_path }}:{{ ansible_env.PATH }}"
 
 - name: include os-specific vars
   include_vars: "{{ansible_os_family}}.yml"
