@@ -21,17 +21,16 @@
     skip: "--skip-spring"
   when: rails_env == 'production'
 
-# FIXME: regex to respond to >= 7.3
-# TODO: this will become recommended practice with sufia version 7.3
-# FIXME: DISABLED... this runs db:migrate before db is configured, so it uses SQLite, not Postgres (i think)
-# it works, but then the second run of db:migrate (below) fails...
 - name: create rails app from template
-  command: bash -lc "rails new {{ sufia_app_name }} -m {{ sufia_template }} --database={{ sufia_db_provider }} {{ skip }}"
+  command: bash -lc "RAILS_ENV={{ rails_env }} rails new {{ sufia_app_name }} -m {{ sufia_template }} --database={{ sufia_db_provider }} {{ skip }}"
   args:
     chdir: "{{ sufia_base_build_dir }}"
-  when: hydra_from_template # sufia_version == '7.3.0' and false
+  environment:
+    RAILS_ENV: '{{ rails_env }}'
+  when: hydra_from_template
 
-  # block for non-templated application
+# FIXME: this probably won't work as it is and may never be needed
+# block for non-templated sufia application
 - block:
   - name: create rails app
     command: bash -lc "rails new {{ sufia_app_name }} --database={{ sufia_db_provider }} {{ skip }}"
@@ -46,27 +45,84 @@
     debug:
       msg: "sufia_gems: {{ sufia_gems }}"
 
-  # TODO: conditionally add dependencies based on sufia version
-  # NOTE: presumably not needed with sufia versions >= 7.3
   - name: add sufia and dependencies to new app's Gemfile
     blockinfile:
       dest: "{{ sufia_build_dir }}/Gemfile"
       block: "{{ sufia_gems }}"
       marker: "# {mark} Sufia Gems"
 
+  # FIXME: couldn't convince the bundler module to install development gems!?!
   - name: install the project's gems
     bundler:
       chdir: "{{ sufia_build_dir }}"
       gem_path: "vendor/bundle"
       exclude_groups: "{{ exclude | default(omit) }}"
+      extra_args: "--with development test"
+
+  - name: "install {{ hydra_head_type }}"
+    command: bash -lc "bundle exec rails generate {{ hydra_head_type }}:install -f"
+    args:
+      chdir: "{{ sufia_build_dir }}"
+
+  when: not hydra_from_template and hydra_head_type == "sufia"
+# end non-templated sufia block
+
+# FIXME: this doesn't work as it is. favoring the template approach instead
+# block for non-templated hyrax application
+- block:
+  - name: create rails app
+    command: bash -lc "rails new {{ sufia_app_name }} --database={{ sufia_db_provider }} --skip-bundle {{ skip }}"
+    args:
+      chdir: "{{ sufia_base_build_dir }}"
+
+  # TODO: conditionally add dependencies based on sufia version
+  - name: add hyrax and dependencies to new app's Gemfile
+    blockinfile:
+      dest: "{{ sufia_build_dir }}/Gemfile"
+      block: "{{ hyrax_gems }}"
+      marker: "# {mark} Hyrax Gems"
+
+  # FIXME: couldn't convince the bundler module to install development gems!?!
+  # - name: install the project's gems
+  #   bundler:
+  #     chdir: "{{ sufia_build_dir }}/"
+  #     # gem_path: "vendor/bundle"
+  #     exclude_groups: "{{ exclude | default(omit) }}"
+  #     extra_args: "--with development"
+  #   environment:
+  #     RAILS_ENV: '{{ rails_env }}'
+  - name: install the project's gems
+    shell: bash -lc "RAILS_ENV={{ rails_env }} bundle install --path vendor/bundle --with {{ rails_env }}"
+    args:
+      chdir: "{{ sufia_build_dir }}"
+    environment:
+      RAILS_ENV: '{{ rails_env }}'
 
   - name: "install {{ hydra_head_type }}"
     command: bash -lc "rails generate {{ hydra_head_type }}:install -f"
     args:
       chdir: "{{ sufia_build_dir }}"
 
-  when: not hydra_from_template
-# end block
+  - name: database migrations
+    command: bash -lc "rails db:migrate"
+    args:
+      chdir: "{{ sufia_deploy_dir }}"
+    environment:
+      RAILS_ENV: '{{ rails_env }}'
+      # SECRET_KEY_BASE: "{{ secret_key_base.stdout }}"
+      # SUFIA_DATABASE_PASSWORD: "{{ sufia_db_pass }}"
+
+  - name: Load workflows from the json files in config/workflows
+    command: bash -lc "rails hyrax:workflow:load"
+    args:
+      chdir: "{{ sufia_deploy_dir }}"
+    environment:
+      RAILS_ENV: '{{ rails_env }}'
+      # SECRET_KEY_BASE: "{{ secret_key_base.stdout }}"
+      # SUFIA_DATABASE_PASSWORD: "{{ sufia_db_pass }}"
+
+  when: not hydra_from_template and hydra_head_type == "hyrax"
+# end non-templated sufia block
 
   # TODO: review - only prod_like?
 - name: configure database
@@ -91,7 +147,7 @@
       RAILS_ENV: '{{ rails_env }}'
 
   # FIXME: regex to respond to <= 7.2
-  when: not hydra_from_template # sufia_version == '7.2.0
+  when: false # not hydra_from_template # sufia_version == '7.2.0
   # TODO: investigate necessity under various circumstances
 
 - name: add to gitignore
