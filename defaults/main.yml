@@ -1,6 +1,7 @@
 ---
 hydra_head_type:        "hyrax" # "sufia" | "hyrax"
 hydra_head_version:     "1.0.0.rc1"
+hydra_head_gem:         "gem '{{ hydra_head_type }}', '{{ hydra_head_version }}'"
 hydra_from_template:    true
 sufia_breaking_stuff_is_ok: "{{ breaking_stuff_is_ok | default(false) }}"
 # sufia_version:          "7.2.0"
@@ -16,6 +17,7 @@ bundler_path:           "/usr/local/bin"
 sufia_work_type:        "Work"
 gems_path:              "/usr/local/lib/ruby/gems/2.3.0/gems/"
 sufia_gems:             "{{ sufia_version_gems }}"
+hyrax_gems:             "{{ hydra_head_gem }}"
 sufia_rebuild:          false
 sufia_redeploy:         false
 # NOTE: build_app and get_app are mutually exclusive, though both can reasonably be set to false, if an app already exists in the build directory
@@ -49,7 +51,7 @@ fcrepo_admin_pass:      ""
 fcrepo_url:             "127.0.0.1"
 fcrepo_port:            "8080"
 
-# a couple unsuccessful stabs at a role_map dict(ionary) variable, for posterity... 
+# a couple unsuccessful stabs at a role_map dict(ionary) variable, for posterity...
 # role_map:
 #   development:
 #     - { role: "admin",     members: [ "admin1@dev.test", "admin2@dev.test" ] }
