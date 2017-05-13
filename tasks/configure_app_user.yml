@@ -1,0 +1,28 @@
+---
+# configures the application user, according to the mode
+
+# begin dev mode block
+- block:
+  - name: use login user as application user
+    set_fact:
+      sufia_app_user: "{{ ansible_env.USER }}"
+  when: sufia_mode == "dev"
+# end dev mode block
+
+# begin prod mode block
+- block:
+  # TODO: specify uid and add app group with specific gid, for project_code use
+  - name: add app user
+    user:
+      name: "{{ sufia_app_user }}"
+      shell: "/bin/bash"
+    become: true
+
+  # NOTE: can't convince the gem module to install rails for the app user
+  - name: install rails for application user
+    command: bash -lc "gem install --version {{ rails_version }} --user-install --no-document rails"
+    become: true
+    become_user: "{{ sufia_app_user }}"
+
+  when: sufia_mode == "prod_like"
+# end prod mode block

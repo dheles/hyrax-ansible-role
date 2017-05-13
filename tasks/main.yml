@@ -14,7 +14,7 @@
   with_items:
     - regexp: "^RAILS_ENV="
       line:    "RAILS_ENV={{ rails_env }}"
-    - regexp: "^PATH=*"
+    - regexp: "^PATH="
       line:    "PATH={{ bundler_path }}:{{ gems_path }}:{{ ansible_env.PATH }}"
 
 - name: include os-specific vars
@@ -24,18 +24,8 @@
   include: "{{ansible_os_family}}_prereqs.yml"
   become: true
 
-# TODO: specify uid and add app group with specific gid, for project_code use
-- name: add app user
-  user:
-    name: "{{ sufia_app_user }}"
-    shell: "/bin/bash"
-  become: true
-
-# NOTE: can't convince the gem module to install rails for the app user
-- name: install rails for application user
-  command: bash -lc "gem install --version {{ rails_version }} --user-install --no-document rails"
-  become: true
-  become_user: "{{ sufia_app_user }}"
+- name: configure application user
+  include: configure_app_user.yml
 
 - name: install rails for application and ansible (login) user
   gem:
@@ -63,11 +53,13 @@
   stat:
     path: "{{ sufia_build_dir }}"
   register: sufia_build_stat
+  become: true
 
 - name: stat sufia deploy dir
   stat:
     path: "{{ sufia_deploy_dir }}"
   register: sufia_deploy_stat
+  become: true
 
 - name: test variables
   debug:
@@ -79,8 +71,20 @@
       - not (sufia_build_app and sufia_get_app)
     msg: "sufia_build_app and sufia_get_app are mutually exclusive"
 
+- name: stop servers before rebuilding
+  shell: screen -S hydraserver -X quit
+  args:
+    chdir: "{{ sufia_build_dir }}"
+  failed_when: false
+
+- name: pause to give servers a chance to shut down
+  pause:
+    seconds: 30
+
 - name: build a new application
   include: build_application.yml
+  # become: true
+  # become_user: "{{ app_user }}"
   when: sufia_build_app # sufia_rebuild or (not sufia_deploy_stat.stat.exists and not sufia_build_stat.stat.exists)
 
 - name: get existing application from a repo
@@ -91,12 +95,14 @@
   stat:
     path: "{{ sufia_build_dir }}"
   register: sufia_build_stat
+  become: true
 
 - name: deploy the application in the build directory
   include: deploy_application.yml
   # NOTE: can't deploy w/o something built
   # TODO: consider reflow to avoid illogical conditions
-  when: sufia_build_stat.stat.exists and (sufia_redeploy or not sufia_deploy_stat.stat.exists)
+  when: sufia_mode == "prod_like" and sufia_build_stat.stat.exists and (sufia_redeploy or not sufia_deploy_stat.stat.exists)
+  # when: sufia_build_stat.stat.exists and (sufia_redeploy or not sufia_deploy_stat.stat.exists)
   become: true
 
   # FIXME: this is not a good solution. issue may be that the deploy dir is mounted.
@@ -143,12 +149,14 @@
   no_log: true
   become: true
 
+# TODO: consider moving to build task?
 - name: start servers
-  shell: screen -dm bash -c "bundle exec rake hydra:server >& log/sufia.log"
+  shell: screen -S hydraserver -dm bash -c "bundle exec rake hydra:server >& log/sufia.log"
   args:
-    chdir: "{{ sufia_deploy_dir }}"
+    chdir: "{{ sufia_build_dir }}"
   async: 30
   poll: 0
+  # become_user: "{{ app_user }}"
   when: sufia_mode == "dev"
 
 - name: configure solr server
@@ -172,6 +180,7 @@
     RAILS_ENV: '{{ rails_env }}'
     SECRET_KEY_BASE: "{{ secret_key_base.stdout }}"
     SUFIA_DATABASE_PASSWORD: "{{ sufia_db_pass }}"
+  when: sufia_mode == "prod_like"
 
 - block:
   - name: configure background workers
