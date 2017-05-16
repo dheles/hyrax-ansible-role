@@ -127,7 +127,7 @@
   # TODO: review - only prod_like?
 - name: configure database
   include: configure_database.yml
-  when: false # sufia_mode == "prod_like"
+  when: true # sufia_mode == "prod_like"
 
   # NOTE: this DESTRUCTIVE task is the sort of thing you'd need to use when
   # when developing, but sure isn't what you'd want to forget about and run
@@ -137,7 +137,18 @@
 - block:
   - name: reset database !DESTRUCTIVELY!
     include: reset_database.yml
-    when: sufia_breaking_stuff_is_ok and sufia_mode == "prod_like"
+    when: sufia_breaking_stuff_is_ok # and sufia_mode == "prod_like"
+
+  # FIXME: this is also done in this role's main playbook
+  # (for the benefit of the deploy play). DRY it up
+  - name: store database password in app user's environment
+    lineinfile:
+      dest: "/home/{{ sufia_app_user }}/.bashrc"
+      regexp: "^export SUFIA_DATABASE_PASSWORD="
+      line: "export SUFIA_DATABASE_PASSWORD={{ sufia_db_pass }}"
+      state: "present"
+    no_log: true
+    become: true
 
   - name: database migrations
     command: bash -lc "rake db:migrate"
@@ -147,7 +158,7 @@
       RAILS_ENV: '{{ rails_env }}'
 
   # FIXME: regex to respond to <= 7.2
-  when: false # not hydra_from_template # sufia_version == '7.2.0
+  when: true # not hydra_from_template # sufia_version == '7.2.0
   # TODO: investigate necessity under various circumstances
 
 - name: add to gitignore
