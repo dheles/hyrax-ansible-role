@@ -170,6 +170,8 @@
 - name: flush handlers after configuring
   meta: flush_handlers
 
+# FIXME: should this be done in build? if it needs to be done for both build and
+# deploy, we need to set the directory more flexibly
 # FIXME: this shouldn't really be necessary to do again here...
 # I believe it is because the template isn't aware of RAILS_ENV
 - name: database migrations
@@ -182,18 +184,32 @@
     SUFIA_DATABASE_PASSWORD: "{{ sufia_db_pass }}"
   when: sufia_mode == "prod_like"
 
+# FIXME: is this optional or not? depends on if it is idempotent enough to run
+# on a deployed app after it was already run in the build environment
 - block:
+  # FIXME: this ugly and potentially confusing hack is in need of revision
+  # begin dev mode block
+  - block:
+    - name: use build dir as deploy dir
+      set_fact:
+        sufia_deploy_dir: "{{ sufia_build_dir }}"
+    when: sufia_mode == "dev"
+  # end dev mode block
+
   - name: configure background workers
     include: configure_background_workers.yml
 
   - name: create default administrative set
     include: create_administrative_set.yml
+    when: sufia_mode == "prod_like"
 
   - name: load workflows
     include: load_workflows.yml
+    when: sufia_mode == "prod_like"
 
-  # - name: generate a work type
-  #   include: generate_work_type.yml
+  - name: generate a work type
+    include: generate_work_type.yml
+    when: sufia_mode == "dev"
 
   - name: configure role_map
     include: configure_role_map.yml
@@ -202,7 +218,8 @@
   # try to find a way to simulate that programmatically
   - name: precompile assets
     include: precompile_assets.yml
+    when: sufia_mode == "prod_like"
 
-  when: sufia_mode == "prod_like"
+  when: true # sufia_mode == "prod_like"
   become: true
   become_user: "{{ sufia_app_user }}"
