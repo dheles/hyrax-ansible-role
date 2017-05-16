@@ -7,4 +7,6 @@
     line: "config.active_job.queue_adapter = :inline"
     insertafter: 'class Application < Rails::Application'
     state: "present"
-  # when: rails_env != 'production'
+  when: sufia_mode == "dev"
+
+# TODO: configure sidekiq for prod-like mode
