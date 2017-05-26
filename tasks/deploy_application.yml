@@ -27,11 +27,19 @@
     sufia_deployment_mode: true
   when: sufia_mode == "prod_like"
 
+# NOTE: don't install spring in production environments:
+# https://github.com/projecthydra/hydra-head/issues/201
+- name: adjust for the rails environment
+  set_fact:
+    exclude: "development, test"
+  when: rails_env == 'production'
+
 - name: install the project's gems for deployment
   bundler:
     chdir: "{{ sufia_deploy_dir }}"
     gem_path: "vendor/bundle"
     deployment_mode: "{{ sufia_deployment_mode }}"
+    exclude_groups: "{{ exclude | default(omit) }}"
 
 - name: reassign ownership of deployed application
   file:
