@@ -22,7 +22,7 @@
   when: rails_env == 'production'
 
 - name: create rails app from template
-  command: bash -lc "RAILS_ENV={{ rails_env }} rails new {{ sufia_app_name }} -m {{ sufia_template }} --database={{ sufia_db_provider }} {{ skip }}"
+  command: bash -lc "RAILS_ENV={{ rails_env }} rails _{{ rails_version }}_ new {{ sufia_app_name }} -m {{ sufia_template }} --database={{ sufia_db_provider }} {{ skip }}"
   args:
     chdir: "{{ sufia_base_build_dir }}"
   environment:
