@@ -1,7 +1,7 @@
 ---
 # TODO: idempotent?
 - name: create default administrative set
-  command: bash -lc "rails hyrax:default_admin_set:create"
+  command: bash -lc "RAILS_ENV={{ rails_env }} rails hyrax:default_admin_set:create"
   args:
     chdir: "{{ sufia_deploy_dir }}"
   environment:
