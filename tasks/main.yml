@@ -70,10 +70,12 @@
   args:
     chdir: "{{ sufia_build_dir }}"
   failed_when: false
+  when: sufia_mode == "dev"
 
 - name: pause to give servers a chance to shut down
   pause:
     seconds: 30
+  when: sufia_mode == "dev"
 
 - name: build a new application
   include: build_application.yml
