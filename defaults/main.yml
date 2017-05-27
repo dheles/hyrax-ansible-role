@@ -9,6 +9,10 @@ rails_version:          "5.0.1"
 rails_env:              "development"
 sufia_app_name:         "{{ app_name | default(hydra_head_type) }}"
 sufia_app_user:         "{{ app_user | default(sufia_app_name) }}"
+sufia_app_group:        "{{ sufia_app_user }}"
+# omitted if not set:
+# sufia_app_user_uid:     1001
+# sufia_app_group_gid:    1001
 sufia_base_deploy_dir:  "{{ base_deploy_dir | default('/opt') }}"
 sufia_deploy_dir:       "{{ sufia_base_deploy_dir }}/{{ sufia_app_name }}"
 sufia_base_build_dir:   "{{ base_build_dir | default(ansible_env.HOME) }}"

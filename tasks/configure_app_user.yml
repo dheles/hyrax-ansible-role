@@ -11,11 +11,19 @@
 
 # begin prod mode block
 - block:
-  # TODO: specify uid and add app group with specific gid, for project_code use
+  - name: add app user group
+    group:
+      name: "{{ sufia_app_group }}"
+      gid:  "{{ sufia_app_group_gid | default(omit) }}"
+      state: present
+    become: true
+
   - name: add app user
     user:
       name: "{{ sufia_app_user }}"
       shell: "/bin/bash"
+      uid:    "{{ sufia_app_user_uid  | default(omit) }}"
+      group:  "{{ sufia_app_group  }}"
     become: true
 
   # NOTE: can't convince the gem module to install rails for the app user
