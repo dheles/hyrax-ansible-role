@@ -166,6 +166,10 @@
 - name: flush handlers after configuring
   meta: flush_handlers
 
+- name: reset database !DESTRUCTIVELY!
+  include: reset_database.yml
+  when: sufia_breaking_stuff_is_ok and sufia_mode == "prod_like"
+
 # FIXME: should this be done in build? if it needs to be done for both build and
 # deploy, we need to set the directory more flexibly
 # FIXME: this shouldn't really be necessary to do again here...
