@@ -199,13 +199,15 @@
   - name: configure background workers
     include: configure_background_workers.yml
 
-  - name: create default administrative set
-    include: create_administrative_set.yml
-    when: sufia_mode == "prod_like"
-
   - name: load workflows
     include: load_workflows.yml
     when: sufia_mode == "prod_like"
+
+  # FIXME: for some reason, this is failing on deploy, so not automating rt now
+  # this may be because there is no user account to associate with the admin set at this point
+  - name: create default administrative set
+    include: create_administrative_set.yml
+    when: false # sufia_mode == "prod_like"
 
   - name: generate a work type
     include: generate_work_type.yml
