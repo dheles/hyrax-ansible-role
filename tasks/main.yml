@@ -27,16 +27,14 @@
 - name: configure application user
   include: configure_app_user.yml
 
-- name: install rails for application and ansible (login) user
+- name: install rails for ansible (login) user
   gem:
     name: rails
     version: "{{ rails_version }}"
     state: present
-    # user_install: no
   become_user: "{{ item }}"
   with_items:
     - "{{ ansible_env.USER }}"
-    # - "{{ sufia_app_user }}"
 
   # FIXME: parameterize to only install when needed
 # - name: install pg gem for working with postgres
