@@ -3,3 +3,4 @@
   template:
     src: "database.yml.j2"
     dest: "{{ sufia_build_dir }}/config/database.yml"
+  when: sufia_db_provider == "postgresql"
