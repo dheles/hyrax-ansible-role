@@ -59,10 +59,6 @@
   register: sufia_deploy_stat
   become: true
 
-- name: test variables
-  debug:
-    msg: "sufia_version: {{ sufia_version }}"
-
 - name: prevent mutually-exclusive build settings
   assert:
     that:
