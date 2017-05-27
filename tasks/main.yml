@@ -209,7 +209,7 @@
 
   - name: generate a work type
     include: generate_work_type.yml
-    when: sufia_mode == "dev"
+    when: sufia_mode == "dev" and sufia_build_app
 
   - name: configure role_map
     include: configure_role_map.yml
