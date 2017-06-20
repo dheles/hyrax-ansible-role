@@ -19,13 +19,14 @@
 
 # FIXME: not (otherwise) idempotent, so remove previously created work before creating it anew
 # FIXME: that didn't work anyway...
-- name: remove a work type
-  command: bash -lc "rails destroy hyrax:work Work"
-  args:
-    chdir: "{{ sufia_deploy_dir }}"
-  environment:
-    RAILS_ENV: '{{ rails_env }}'
-    SECRET_KEY_BASE: "{{ secret_key_base.stdout }}"
+# - name: remove a work type
+#   command: bash -lc "rails destroy hyrax:work Work"
+#   args:
+#     chdir: "{{ sufia_deploy_dir }}"
+#   environment:
+#     RAILS_ENV: '{{ rails_env }}'
+#     SECRET_KEY_BASE: "{{ secret_key_base.stdout }}"
+
 - name: generate a work type
   command: bash -lc "rails generate hyrax:work Work"
   args:

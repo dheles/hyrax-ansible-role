@@ -27,14 +27,14 @@
 - name: configure application user
   include: configure_app_user.yml
 
+# NOTE: the gem module does not jibe with rbenv. (which we are using for local installs now)
+# it installs but rehashing to get the executables doesn't work
 - name: install rails for ansible (login) user
-  gem:
-    name: rails
-    version: "{{ rails_version }}"
-    state: present
-  become_user: "{{ item }}"
-  with_items:
-    - "{{ ansible_env.USER }}"
+  command: "gem install --version {{ rails_version }} rails"
+  notify: shim ruby executables
+
+- name: flush handlers to get rails executable
+  meta: flush_handlers
 
   # FIXME: parameterize to only install when needed
 # - name: install pg gem for working with postgres
@@ -45,6 +45,7 @@
 # TODO: only include when needed
 - name: inotify watcher fix
   include: inotify_watcher_fix.yml
+  when: ansible_os_family == 'RedHat'
 
   # TODO: consider assertion or flow control to prevent unproductive rebuild/redeploy settings on fresh system
 - name: stat sufia build dir
@@ -66,15 +67,7 @@
     msg: "sufia_build_app and sufia_get_app are mutually exclusive"
 
 - name: stop servers before rebuilding
-  shell: screen -S hydraserver -X quit
-  args:
-    chdir: "{{ sufia_build_dir }}"
-  failed_when: false
-  when: sufia_mode == "dev"
-
-- name: pause to give servers a chance to shut down
-  pause:
-    seconds: 30
+  include: stop_servers.yml
   when: sufia_mode == "dev"
 
 - name: build a new application
@@ -108,6 +101,7 @@
   become: true
   selinux:
     state: disabled
+  when: ansible_os_family == 'RedHat'
 # - name: set SELinux context on deploy dir
 #   sefcontext:
 #     target: "{{ sufia_deploy_dir }}(/.*)?"
@@ -128,31 +122,31 @@
   register: secret_key_base
   no_log: true
 - lineinfile:
-    dest: "/home/{{ sufia_app_user }}/.bashrc"
+    dest: "{{ user_dir_path }}/{{ sufia_app_user }}/.bashrc"
     regexp: "^export SECRET_KEY_BASE="
     line: "export SECRET_KEY_BASE={{ secret_key_base.stdout }}"
     state: "present"
   no_log: true
   become: true
   notify: restart apache
+  when: sufia_mode == "prod_like"
+
+- name: test vars
+  debug: var="{{ not sufia_debugging }}"
 
 - name: store database password in app user's environment
   lineinfile:
-    dest: "/home/{{ sufia_app_user }}/.bashrc"
+    dest: "{{ user_dir_path }}/{{ sufia_app_user }}/.bashrc"
     regexp: "^export SUFIA_DATABASE_PASSWORD="
     line: "export SUFIA_DATABASE_PASSWORD={{ sufia_db_pass }}"
     state: "present"
-  no_log: true
+  no_log: "{{ not sufia_debugging }}" # "{{ not sufia_debugging }}"
   become: true
+  when: sufia_mode == "prod_like"
 
 # TODO: consider moving to build task?
 - name: start servers
-  shell: screen -S hydraserver -dm bash -c "bundle exec rake hydra:server >& log/sufia.log"
-  args:
-    chdir: "{{ sufia_build_dir }}"
-  async: 30
-  poll: 0
-  # become_user: "{{ app_user }}"
+  include: start_servers.yml
   when: sufia_mode == "dev"
 
 - name: configure solr server
@@ -196,6 +190,9 @@
     when: sufia_mode == "dev"
   # end dev mode block
 
+  - name: configure role_map
+    include: configure_role_map.yml
+
   - name: configure background workers
     include: configure_background_workers.yml
 
@@ -203,18 +200,25 @@
     include: load_workflows.yml
     when: sufia_mode == "prod_like"
 
-  # FIXME: for some reason, this is failing on deploy, so not automating rt now
-  # this may be because there is no user account to associate with the admin set at this point
+  # TODO: port number is configurable and should thus be in a var
+  - name: wait for solr
+    wait_for:
+      port: 8983
+      delay: 10
+
+  # TODO: port number is configurable and should thus be in a var
+  - name: wait for fedora
+    wait_for:
+      port: 8984
+      delay: 10
+
   - name: create default administrative set
     include: create_administrative_set.yml
-    when: false # sufia_mode == "prod_like"
+    when: sufia_mode == "dev" # sufia_mode == "prod_like"
 
   - name: generate a work type
     include: generate_work_type.yml
     when: sufia_mode == "dev" and sufia_build_app
-
-  - name: configure role_map
-    include: configure_role_map.yml
 
   # FIXME: this doesn't seem to work before the application has been visited for the first time
   # try to find a way to simulate that programmatically

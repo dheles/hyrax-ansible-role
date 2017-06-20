@@ -35,6 +35,7 @@ sufia_app_branch:       "{{ app_branch | default('master')}}"
 sufia_inotify_watchers: "524288"
 sufia_mode:             "prod_like" # "dev" | "prod_like"
 sufia_admin_email:      "admin@hyrax.test"
+sufia_debugging:        "{{ debugging | default(false) }}"
 # solr vars
 solr_core:              "{{ (solr_cores | default(['hydra-development']))[0] }}"
 solr_user:              "solr"

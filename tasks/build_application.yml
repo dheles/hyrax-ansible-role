@@ -25,8 +25,7 @@
   command: bash -lc "RAILS_ENV={{ rails_env }} rails _{{ rails_version }}_ new {{ sufia_app_name }} -m {{ sufia_template }} --database={{ sufia_db_provider }} {{ skip }}"
   args:
     chdir: "{{ sufia_base_build_dir }}"
-  environment:
-    RAILS_ENV: '{{ rails_env }}'
+
   when: hydra_from_template
 
 # FIXME: this probably won't work as it is and may never be needed
@@ -71,9 +70,11 @@
 # block for non-templated hyrax application
 - block:
   - name: create rails app
-    command: bash -lc "rails new {{ sufia_app_name }} --database={{ sufia_db_provider }} --skip-bundle {{ skip }}"
+    command: bash -lc "RAILS_ENV={{ rails_env }} rails _{{ rails_version }}_ new {{ sufia_app_name }} --database={{ sufia_db_provider }} {{ skip }}" # --skip-bundle
     args:
       chdir: "{{ sufia_base_build_dir }}"
+    environment:
+      RAILS_ENV: '{{ rails_env }}'
 
   # TODO: conditionally add dependencies based on sufia version
   - name: add hyrax and dependencies to new app's Gemfile
@@ -106,7 +107,7 @@
   - name: database migrations
     command: bash -lc "rails db:migrate"
     args:
-      chdir: "{{ sufia_deploy_dir }}"
+      chdir: "{{ sufia_build_dir }}"
     environment:
       RAILS_ENV: '{{ rails_env }}'
       # SECRET_KEY_BASE: "{{ secret_key_base.stdout }}"
@@ -115,7 +116,7 @@
   - name: Load workflows from the json files in config/workflows
     command: bash -lc "rails hyrax:workflow:load"
     args:
-      chdir: "{{ sufia_deploy_dir }}"
+      chdir: "{{ sufia_build_dir }}"
     environment:
       RAILS_ENV: '{{ rails_env }}'
       # SECRET_KEY_BASE: "{{ secret_key_base.stdout }}"
@@ -127,7 +128,7 @@
   # TODO: review - only prod_like?
 - name: configure database
   include: configure_database.yml
-  when: true # sufia_mode == "prod_like"
+  when: sufia_mode == "prod_like"
 
   # NOTE: this DESTRUCTIVE task is the sort of thing you'd need to use when
   # when developing, but sure isn't what you'd want to forget about and run
@@ -143,11 +144,11 @@
   # (for the benefit of the deploy play). DRY it up
   - name: store database password in app user's environment
     lineinfile:
-      dest: "/home/{{ sufia_app_user }}/.bashrc"
+      dest: "{{ user_dir_path}}/{{ sufia_app_user }}/.bashrc"
       regexp: "^export SUFIA_DATABASE_PASSWORD="
       line: "export SUFIA_DATABASE_PASSWORD={{ sufia_db_pass }}"
       state: "present"
-    no_log: true
+    no_log: "{{ not sufia_debugging }}"
     become: true
 
   - name: database migrations
@@ -158,7 +159,7 @@
       RAILS_ENV: '{{ rails_env }}'
 
   # FIXME: regex to respond to <= 7.2
-  when: true # not hydra_from_template # sufia_version == '7.2.0
+  when: sufia_mode == "prod_like" # not hydra_from_template # sufia_version == '7.2.0
   # TODO: investigate necessity under various circumstances
 
 - name: add to gitignore
